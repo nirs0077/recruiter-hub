@@ -1,0 +1,20 @@
+# ── Backend secrets (DO NOT COMMIT) ──────────────────────────────────────────
+backend/firebase-credentials.json
+backend/.env
+backend/venv*/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.lnk
