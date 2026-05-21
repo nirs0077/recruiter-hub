@@ -3,12 +3,21 @@ import { Link } from "react-router-dom";
 import api from "../../api";
 import { Plus, MapPin, Wifi, ExternalLink, Loader2, Users, ChevronLeft } from "lucide-react";
 
+type JobStatus = "active" | "frozen" | "closed";
+
+const STATUS_CONFIG: Record<JobStatus, { label: string; color: string }> = {
+  active: { label: "פעיל",  color: "bg-green-100 text-green-700" },
+  frozen: { label: "מוקפא", color: "bg-yellow-100 text-yellow-700" },
+  closed: { label: "סגור",  color: "bg-gray-100 text-gray-500" },
+};
+
 interface Job {
   id: string;
   title: string;
   location?: string;
   hybrid?: string;
   is_active: boolean;
+  status: JobStatus;
   assigned_contractors: string[];
   created_at?: string;
   url: string;
@@ -88,6 +97,11 @@ export default function AdminJobs() {
   const getContractorName = (uid: string) =>
     contractors.find((c) => c.uid === uid)?.name || uid;
 
+  const handleStatusChange = async (jobId: string, status: string) => {
+    await api.patch(`/jobs/${jobId}/status?status=${status}`);
+    fetchAll();
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -140,11 +154,11 @@ export default function AdminJobs() {
           <div key={job.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-semibold text-gray-900 truncate">{job.title}</h3>
-                  {!job.is_active && (
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">לא פעילה</span>
-                  )}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CONFIG[job.status ?? (job.is_active ? "active" : "closed")].color}`}>
+                    {STATUS_CONFIG[job.status ?? (job.is_active ? "active" : "closed")].label}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
                   {job.location && (
@@ -168,7 +182,16 @@ export default function AdminJobs() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                <select
+                  value={job.status ?? (job.is_active ? "active" : "closed")}
+                  onChange={(e) => handleStatusChange(job.id, e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                >
+                  <option value="active">פעיל</option>
+                  <option value="frozen">מוקפא</option>
+                  <option value="closed">סגור</option>
+                </select>
                 <a
                   href={job.url}
                   target="_blank"

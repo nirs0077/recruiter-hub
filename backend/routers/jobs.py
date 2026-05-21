@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from firebase_init import get_db
-from models.schemas import JobCreate, JobUpdate, JobOut, AssignJobRequest, UserRole
+from models.schemas import JobCreate, JobUpdate, JobOut, AssignJobRequest, UserRole, JobStatus
 from routers.auth import get_current_user, require_admin
 from services.scraping_service import fetch_page_text
 from services.ai_service import extract_job_from_text
@@ -11,6 +11,12 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 def _job_doc_to_out(doc_id: str, d: dict) -> JobOut:
+    stored_status = d.get("status")
+    is_active = d.get("is_active", True)
+    if stored_status in ("active", "frozen", "closed"):
+        status = JobStatus(stored_status)
+    else:
+        status = JobStatus.active if is_active else JobStatus.closed
     return JobOut(
         id=doc_id,
         url=d.get("url", ""),
@@ -19,7 +25,8 @@ def _job_doc_to_out(doc_id: str, d: dict) -> JobOut:
         hybrid=d.get("hybrid"),
         description=d.get("description"),
         requirements=d.get("requirements"),
-        is_active=d.get("is_active", True),
+        is_active=(status == JobStatus.active),
+        status=status,
         created_at=d.get("created_at"),
         assigned_contractors=d.get("assigned_contractors", []),
     )
@@ -43,6 +50,7 @@ async def create_job(body: JobCreate, admin=Depends(require_admin)):
         "description": job_data.get("description"),
         "requirements": job_data.get("requirements"),
         "is_active": True,
+        "status": "active",
         "assigned_contractors": [],
         "created_at": datetime.utcnow().isoformat(),
     }
@@ -95,6 +103,18 @@ async def update_job(job_id: str, body: JobUpdate, admin=Depends(require_admin))
 async def delete_job(job_id: str, admin=Depends(require_admin)):
     get_db().collection("jobs").document(job_id).delete()
     return {"ok": True}
+
+
+@router.patch("/{job_id}/status")
+async def update_job_status(job_id: str, status: str, admin=Depends(require_admin)):
+    if status not in ("active", "frozen", "closed"):
+        raise HTTPException(status_code=400, detail="Invalid status")
+    db = get_db()
+    ref = db.collection("jobs").document(job_id)
+    if not ref.get().exists:
+        raise HTTPException(status_code=404, detail="Job not found")
+    ref.update({"status": status, "is_active": status == "active"})
+    return {"ok": True, "status": status}
 
 
 @router.post("/assign")

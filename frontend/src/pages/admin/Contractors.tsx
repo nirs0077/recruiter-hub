@@ -22,9 +22,10 @@ interface JobWithCandidates {
   id: string; title: string; location?: string; hybrid?: string;
   is_active: boolean; created_at?: string; candidates: CandidateInJob[];
 }
+type JobStatus = "active" | "frozen" | "closed";
 interface AllJob {
   id: string; title: string; location?: string; hybrid?: string;
-  is_active: boolean; assigned_contractors: string[];
+  is_active: boolean; status: JobStatus; assigned_contractors: string[];
 }
 interface CandidateEntry {
   id: string; name: string; email?: string; phone?: string;
@@ -122,7 +123,7 @@ function JobRow({
   return (
     <div className={`border rounded-lg overflow-hidden ${assigned ? "border-blue-200" : "border-gray-200 opacity-70"}`}>
       <div className="flex items-center gap-3 px-4 py-3 bg-white">
-        <div className={`w-2 h-2 rounded-full shrink-0 ${job.is_active ? "bg-green-400" : "bg-gray-300"}`} />
+        <div className={`w-2 h-2 rounded-full shrink-0 ${job.status === "active" ? "bg-green-400" : job.status === "frozen" ? "bg-yellow-400" : "bg-gray-300"}`} />
         <Briefcase size={14} className="text-gray-400 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-800">{job.title}</p>
@@ -269,7 +270,7 @@ function ContractorCard({
 
   const assignedIds = new Set(assignedJobsData.map(j => j.id));
   const totalCandidates = candidates.length;
-  const activeAssigned = assignedJobsData.filter(j => j.is_active).length;
+  const activeAssigned = assignedJobsData.filter(j => (j as any).status === "active" || j.is_active).length;
 
   return (
     <div className={`bg-white border rounded-xl shadow-sm overflow-hidden ${!user.active ? "opacity-60" : ""}`}>
@@ -378,32 +379,45 @@ function ContractorCard({
               allJobs.length === 0
                 ? <p className="text-sm text-gray-400 text-center py-6">אין משרות במערכת</p>
                 : <div className="space-y-2">
-                    {/* Assigned jobs first */}
-                    {allJobs.filter(j => assignedIds.has(j.id) && j.is_active).length > 0 && (
+                    {/* Active assigned */}
+                    {allJobs.filter(j => assignedIds.has(j.id) && j.status === "active").length > 0 && (
                       <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">משויכות</p>
                     )}
-                    {allJobs.filter(j => assignedIds.has(j.id) && j.is_active).map(j => (
+                    {allJobs.filter(j => assignedIds.has(j.id) && j.status === "active").map(j => (
                       <JobRow key={j.id} job={j} assigned={true}
                         assignedData={assignedJobsData.find(a => a.id === j.id)}
                         onAssign={handleAssign} onUnassign={handleUnassign}
                         toggling={togglingJob === j.id} />
                     ))}
 
-                    {/* Unassigned jobs */}
-                    {allJobs.filter(j => !assignedIds.has(j.id) && j.is_active).length > 0 && (
+                    {/* Active unassigned */}
+                    {allJobs.filter(j => !assignedIds.has(j.id) && j.status === "active").length > 0 && (
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-1">לא משויכות</p>
                     )}
-                    {allJobs.filter(j => !assignedIds.has(j.id) && j.is_active).map(j => (
+                    {allJobs.filter(j => !assignedIds.has(j.id) && j.status === "active").map(j => (
                       <JobRow key={j.id} job={j} assigned={false}
                         onAssign={handleAssign} onUnassign={handleUnassign}
                         toggling={togglingJob === j.id} />
                     ))}
 
-                    {/* Archived */}
-                    {allJobs.filter(j => !j.is_active).length > 0 && (
+                    {/* Frozen */}
+                    {allJobs.filter(j => j.status === "frozen").length > 0 && (
                       <>
-                        <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mt-4 mb-1">ארכיון</p>
-                        {allJobs.filter(j => !j.is_active).map(j => (
+                        <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mt-3 mb-1">מוקפאות</p>
+                        {allJobs.filter(j => j.status === "frozen").map(j => (
+                          <JobRow key={j.id} job={j} assigned={assignedIds.has(j.id)}
+                            assignedData={assignedJobsData.find(a => a.id === j.id)}
+                            onAssign={handleAssign} onUnassign={handleUnassign}
+                            toggling={togglingJob === j.id} />
+                        ))}
+                      </>
+                    )}
+
+                    {/* Closed */}
+                    {allJobs.filter(j => j.status === "closed").length > 0 && (
+                      <>
+                        <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mt-4 mb-1">סגורות</p>
+                        {allJobs.filter(j => j.status === "closed").map(j => (
                           <JobRow key={j.id} job={j} assigned={assignedIds.has(j.id)}
                             assignedData={assignedJobsData.find(a => a.id === j.id)}
                             onAssign={handleAssign} onUnassign={handleUnassign}

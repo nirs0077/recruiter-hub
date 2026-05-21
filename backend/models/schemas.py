@@ -16,6 +16,12 @@ class ApplicationStatus(str, Enum):
     rejected = "rejected"
 
 
+class JobStatus(str, Enum):
+    active = "active"
+    frozen = "frozen"
+    closed = "closed"
+
+
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -66,6 +72,7 @@ class JobUpdate(BaseModel):
     description: Optional[str] = None
     requirements: Optional[str] = None
     is_active: Optional[bool] = None
+    status: Optional[JobStatus] = None
 
 
 class JobOut(BaseModel):
@@ -77,6 +84,7 @@ class JobOut(BaseModel):
     description: Optional[str] = None
     requirements: Optional[str] = None
     is_active: bool = True
+    status: JobStatus = JobStatus.active
     created_at: Optional[str] = None
     assigned_contractors: Optional[List[str]] = []
 
