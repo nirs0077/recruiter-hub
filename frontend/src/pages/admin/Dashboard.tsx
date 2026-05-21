@@ -42,7 +42,7 @@ export default function AdminDashboard() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">לוח בקרה</h1>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {statCards.map(({ label, value, icon: Icon, color, to }) => (
           <Link key={label} to={to} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${color}`}>

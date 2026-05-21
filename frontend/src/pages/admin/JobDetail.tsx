@@ -109,9 +109,9 @@ export default function AdminJobDetail() {
       </div>
 
       {/* Applications */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
         <h2 className="text-lg font-bold text-gray-900">מועמדים</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(["strong", "weak", "all"] as const).map((f) => (
             <button
               key={f}
@@ -130,7 +130,7 @@ export default function AdminJobDetail() {
         {filtered.map((app) => (
           <div key={app.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div
-              className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50"
+              className="flex items-center gap-3 p-3 sm:p-4 cursor-pointer hover:bg-gray-50 flex-wrap"
               onClick={() => setExpanded(expanded === app.id ? null : app.id)}
             >
               {/* Score Circle */}
@@ -183,7 +183,7 @@ export default function AdminJobDetail() {
                   <p className="text-sm font-semibold text-gray-700 mb-1">סיכום התאמה</p>
                   <p className="text-sm text-gray-600">{app.fit_summary}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-semibold text-green-700 mb-1">חוזקות</p>
                     <ul className="space-y-1">

@@ -274,53 +274,81 @@ function ContractorCard({
   return (
     <div className={`bg-white border rounded-xl shadow-sm overflow-hidden ${!user.active ? "opacity-60" : ""}`}>
       {/* Header */}
-      <div className="flex items-center gap-4 p-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${user.active ? "bg-blue-100" : "bg-gray-100"}`}>
-          <User size={18} className={user.active ? "text-blue-600" : "text-gray-400"} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-medium text-gray-900">{user.name}</p>
-            {!user.active && <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">לא פעיל</span>}
-            {loaded && (
-              <span className="text-xs text-gray-400">
-                {activeAssigned} משרות פעילות · {totalCandidates} מועמדים
-              </span>
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${user.active ? "bg-blue-100" : "bg-gray-100"}`}>
+            <User size={18} className={user.active ? "text-blue-600" : "text-gray-400"} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium text-gray-900">{user.name}</p>
+              {!user.active && <span className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">לא פעיל</span>}
+              {loaded && (
+                <span className="text-xs text-gray-400">
+                  {activeAssigned} משרות · {totalCandidates} מועמדים
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5 flex-wrap">
+              <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>
+              {user.phone && <span className="flex items-center gap-1"><Phone size={11} />{user.phone}</span>}
+            </div>
+          </div>
+
+          {/* Actions — desktop */}
+          <div className="hidden sm:flex items-center gap-1 shrink-0">
+            <span className={`text-xs px-2 py-1 rounded-full ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+              {user.role === "admin" ? "מנהל" : "קבלן"}
+            </span>
+            <button onClick={() => onResetPassword(user.uid, user.name)} title="איפוס סיסמה"
+              className="text-gray-300 hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-blue-50">
+              <RotateCcw size={15} />
+            </button>
+            <button onClick={() => onToggleActive(user.uid)} title={user.active ? "השבת" : "הפעל"}
+              className={`transition-colors p-1.5 rounded-lg ${user.active ? "text-green-500 hover:text-orange-500 hover:bg-orange-50" : "text-gray-300 hover:text-green-500 hover:bg-green-50"}`}>
+              {user.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+            </button>
+            <button onClick={() => onDelete(user.uid, user.name)} title="מחק"
+              className="text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+              <Trash2 size={15} />
+            </button>
+            {user.role === "contractor" && (
+              <button onClick={toggle}
+                className="flex items-center gap-1.5 text-xs text-blue-600 font-medium border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors">
+                {loading ? <Loader2 size={13} className="animate-spin" /> : (expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
+                {expanded ? "סגור" : "פרטים"}
+              </button>
             )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5 flex-wrap">
-            <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>
-            {user.phone && <span className="flex items-center gap-1"><Phone size={11} />{user.phone}</span>}
+        </div>
+
+        {/* Actions — mobile */}
+        <div className="sm:hidden flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+          <span className={`text-xs px-2 py-1 rounded-full ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
+            {user.role === "admin" ? "מנהל" : "קבלן"}
+          </span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => onResetPassword(user.uid, user.name)} title="איפוס סיסמה"
+              className="text-gray-300 hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-blue-50">
+              <RotateCcw size={15} />
+            </button>
+            <button onClick={() => onToggleActive(user.uid)} title={user.active ? "השבת" : "הפעל"}
+              className={`transition-colors p-1.5 rounded-lg ${user.active ? "text-green-500 hover:text-orange-500 hover:bg-orange-50" : "text-gray-300 hover:text-green-500 hover:bg-green-50"}`}>
+              {user.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+            </button>
+            <button onClick={() => onDelete(user.uid, user.name)} title="מחק"
+              className="text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+              <Trash2 size={15} />
+            </button>
+            {user.role === "contractor" && (
+              <button onClick={toggle}
+                className="flex items-center gap-1.5 text-xs text-blue-600 font-medium border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors">
+                {loading ? <Loader2 size={13} className="animate-spin" /> : (expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
+                {expanded ? "סגור" : "פרטים"}
+              </button>
+            )}
           </div>
         </div>
-
-        <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
-          {user.role === "admin" ? "מנהל" : "קבלן"}
-        </span>
-
-        <div className="flex items-center gap-1 shrink-0">
-          <button onClick={() => onResetPassword(user.uid, user.name)} title="איפוס סיסמה"
-            className="text-gray-300 hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-blue-50">
-            <RotateCcw size={15} />
-          </button>
-          <button onClick={() => onToggleActive(user.uid)}
-            title={user.active ? "השבת" : "הפעל"}
-            className={`transition-colors p-1.5 rounded-lg ${user.active ? "text-green-500 hover:text-orange-500 hover:bg-orange-50" : "text-gray-300 hover:text-green-500 hover:bg-green-50"}`}>
-            {user.active ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-          </button>
-          <button onClick={() => onDelete(user.uid, user.name)} title="מחק"
-            className="text-gray-300 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50">
-            <Trash2 size={15} />
-          </button>
-        </div>
-
-        {user.role === "contractor" && (
-          <button onClick={toggle}
-            className="flex items-center gap-1.5 text-xs text-blue-600 font-medium border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 transition-colors shrink-0">
-            {loading ? <Loader2 size={13} className="animate-spin" /> : (expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
-            {expanded ? "סגור" : "פרטים"}
-          </button>
-        )}
       </div>
 
       {/* Expanded panel */}
@@ -482,18 +510,18 @@ export default function Contractors() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">ניהול משתמשים</h1>
           <p className="text-gray-500 text-sm mt-1">{contractors.length} קבלנים, {admins.length} מנהלים</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={handleInvite}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${inviteCopied ? "border-green-400 text-green-600 bg-green-50" : "border-green-400 text-green-600 hover:bg-green-50"}`}>
-            {inviteCopied ? <><Check size={16} />הועתק!</> : <><Share2 size={16} />הזמן קבלן בוואטסאפ</>}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${inviteCopied ? "border-green-400 text-green-600 bg-green-50" : "border-green-400 text-green-600 hover:bg-green-50"}`}>
+            {inviteCopied ? <><Check size={16} />הועתק!</> : <><Share2 size={16} />הזמן בוואטסאפ</>}
           </button>
           <button onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
             <Plus size={18} />הוסף ידנית
           </button>
         </div>
@@ -502,7 +530,7 @@ export default function Contractors() {
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm">
           <h3 className="font-semibold text-gray-800 mb-4">משתמש חדש</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">שם מלא</label>
               <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}

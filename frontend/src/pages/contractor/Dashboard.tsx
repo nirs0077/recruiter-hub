@@ -54,7 +54,7 @@ export default function ContractorDashboard() {
       <div className="space-y-3">
         {jobs.map((job) => (
           <div key={job.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 mb-1">{job.title}</h3>
                 <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -63,7 +63,7 @@ export default function ContractorDashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => shareWhatsApp(job)}
                   title="שתף בוואטסאפ"

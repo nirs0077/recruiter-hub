@@ -113,7 +113,7 @@ export default function AdminJobs() {
       {showAddForm && (
         <form onSubmit={handleAdd} className="bg-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm">
           <h3 className="font-semibold text-gray-800 mb-3">הוסף משרה חדשה</h3>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="url"
               value={addingUrl}
@@ -125,7 +125,7 @@ export default function AdminJobs() {
             <button
               type="submit"
               disabled={adding}
-              className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
+              className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {adding ? <><Loader2 size={16} className="animate-spin" />מנתח...</> : "הוסף"}
             </button>
@@ -138,7 +138,7 @@ export default function AdminJobs() {
       <div className="space-y-3">
         {jobs.map((job) => (
           <div key={job.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-gray-900 truncate">{job.title}</h3>
