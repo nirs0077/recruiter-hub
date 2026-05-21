@@ -3,7 +3,7 @@ import api from "../../api";
 import {
   Plus, Trash2, User, Loader2, Phone, Mail, Eye, EyeOff,
   RotateCcw, ToggleLeft, ToggleRight, ChevronDown, ChevronUp,
-  Briefcase, Users, CheckCircle, XCircle, AlertCircle, Clock, Share2, Copy, Check
+  Briefcase, Users, CheckCircle, XCircle, AlertCircle, Clock, Share2, Check
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
