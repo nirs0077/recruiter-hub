@@ -16,3 +16,7 @@ services:
         sync: false         # set to your Vercel URL, e.g. https://recruiter-hub.vercel.app
       - key: SCORE_THRESHOLD
         value: "75.0"
+      - key: SMTP_USER
+        sync: false         # Gmail address for sending notifications
+      - key: SMTP_PASSWORD
+        sync: false         # Gmail App Password (not your regular password)

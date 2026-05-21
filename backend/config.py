@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     score_threshold: float = 75.0
     frontend_url: str = "http://localhost:5173"
 
+    # SMTP (optional — leave empty to disable email notifications)
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+
     class Config:
         env_file = ".env"
 

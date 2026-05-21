@@ -119,11 +119,36 @@ async def update_job_status(job_id: str, status: str, admin=Depends(require_admi
 
 @router.post("/assign")
 async def assign_jobs(body: AssignJobRequest, admin=Depends(require_admin)):
+    import asyncio
+    from services.email_service import send_email, job_assigned_email
+    from config import get_settings
     db = get_db()
     from google.cloud.firestore_v1 import ArrayUnion
+    s = get_settings()
+
     for job_id in body.job_ids:
         ref = db.collection("jobs").document(job_id)
+        job_doc = ref.get()
         ref.update({"assigned_contractors": ArrayUnion(body.contractor_ids)})
+
+        if job_doc.exists:
+            job = job_doc.to_dict()
+            already_assigned = job.get("assigned_contractors", [])
+            for contractor_id in body.contractor_ids:
+                if contractor_id in already_assigned:
+                    continue  # already had it, skip email
+                user_doc = db.collection("users").document(contractor_id).get()
+                if not user_doc.exists:
+                    continue
+                u = user_doc.to_dict()
+                email = u.get("email", "")
+                name = u.get("name", "קבלן")
+                if not email:
+                    continue
+                apply_url = f"{s.frontend_url}/apply/{job_id}/{contractor_id}"
+                subject, html = job_assigned_email(name, job.get("title", ""), job.get("location"), apply_url)
+                asyncio.create_task(send_email(email, subject, html))
+
     return {"ok": True, "assigned": len(body.job_ids) * len(body.contractor_ids)}
 
 

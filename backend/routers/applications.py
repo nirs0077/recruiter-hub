@@ -152,6 +152,8 @@ async def get_application(app_id: str, user=Depends(get_current_user)):
 
 @router.patch("/{app_id}/status")
 async def update_status(app_id: str, status: ApplicationStatus, user=Depends(get_current_user)):
+    import asyncio
+    from services.email_service import send_email, candidate_in_process_email
     db = get_db()
     doc = db.collection("applications").document(app_id).get()
     if not doc.exists:
@@ -160,4 +162,22 @@ async def update_status(app_id: str, status: ApplicationStatus, user=Depends(get
     if user["role"] == UserRole.contractor and d.get("contractor_id") != user["uid"]:
         raise HTTPException(status_code=403, detail="Forbidden")
     db.collection("applications").document(app_id).update({"status": status})
+
+    if status == ApplicationStatus.in_process and d.get("status") != ApplicationStatus.in_process:
+        contractor_id = d.get("contractor_id", "")
+        if contractor_id:
+            user_doc = db.collection("users").document(contractor_id).get()
+            if user_doc.exists:
+                u = user_doc.to_dict()
+                email = u.get("email", "")
+                name = u.get("name", "קבלן")
+                if email:
+                    subject, html = candidate_in_process_email(
+                        name,
+                        d.get("candidate_name", "מועמד"),
+                        d.get("job_title", "משרה"),
+                        d.get("score"),
+                    )
+                    asyncio.create_task(send_email(email, subject, html))
+
     return {"ok": True}
