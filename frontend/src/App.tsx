@@ -14,6 +14,7 @@ import ContractorDashboard from "./pages/contractor/Dashboard";
 import ContractorJobDetail from "./pages/contractor/JobDetail";
 import Apply from "./pages/public/Apply";
 import Register from "./pages/public/Register";
+import Impersonate from "./pages/Impersonate";
 
 function ProtectedRoute({ children, role }: { children: React.ReactNode; role?: string }) {
   const { user, loading } = useAuth();
@@ -30,6 +31,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/apply/:jobId/:contractorId" element={<Apply />} />
       <Route path="/register/:token" element={<Register />} />
+      <Route path="/impersonate" element={<Impersonate />} />
 
       {/* Admin */}
       <Route path="/admin" element={<ProtectedRoute role="admin"><Layout><AdminDashboard /></Layout></ProtectedRoute>} />

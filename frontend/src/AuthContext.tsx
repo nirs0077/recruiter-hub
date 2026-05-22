@@ -24,11 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("impersonate_token") || localStorage.getItem("token");
     if (token) {
       api.get("/auth/me")
         .then((r) => setUser(r.data))
-        .catch(() => localStorage.removeItem("token"))
+        .catch(() => {
+          localStorage.removeItem("token");
+          sessionStorage.removeItem("impersonate_token");
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);

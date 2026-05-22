@@ -246,6 +246,17 @@ async def register_with_invite(body: RegisterWithInviteRequest):
     }
 
 
+@router.post("/impersonate/{uid}")
+async def impersonate_user(uid: str, admin=Depends(require_admin)):
+    db = get_db()
+    doc = db.collection("users").document(uid).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_data = doc.to_dict()
+    token = create_token(uid, user_data["role"])
+    return {"token": token, "role": user_data["role"]}
+
+
 @router.get("/me", response_model=UserOut)
 async def me(user=Depends(get_current_user)):
     return UserOut(

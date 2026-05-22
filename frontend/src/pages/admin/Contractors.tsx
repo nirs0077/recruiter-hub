@@ -209,12 +209,13 @@ function CandidateRow({ candidate }: { candidate: CandidateEntry }) {
 
 // ── Contractor card ───────────────────────────────────────────────────────────
 function ContractorCard({
-  user, onDelete, onToggleActive, onResetPassword,
+  user, onDelete, onToggleActive, onResetPassword, onImpersonate,
 }: {
   user: ContractorUser;
   onDelete: (uid: string, name: string) => void;
   onToggleActive: (uid: string) => void;
   onResetPassword: (uid: string, name: string) => void;
+  onImpersonate: (uid: string, role: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [tab, setTab] = useState<"jobs" | "candidates">("jobs");
@@ -301,6 +302,10 @@ function ContractorCard({
             <span className={`text-xs px-2 py-1 rounded-full ${user.role === "admin" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"}`}>
               {user.role === "admin" ? "מנהל" : "קבלן"}
             </span>
+            <button onClick={() => onImpersonate(user.uid, user.role)} title="צפה כמשתמש זה"
+              className="text-gray-300 hover:text-purple-500 transition-colors p-1.5 rounded-lg hover:bg-purple-50">
+              <Eye size={15} />
+            </button>
             <button onClick={() => onResetPassword(user.uid, user.name)} title="איפוס סיסמה"
               className="text-gray-300 hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-blue-50">
               <RotateCcw size={15} />
@@ -329,6 +334,10 @@ function ContractorCard({
             {user.role === "admin" ? "מנהל" : "קבלן"}
           </span>
           <div className="flex items-center gap-1">
+            <button onClick={() => onImpersonate(user.uid, user.role)} title="צפה כמשתמש זה"
+              className="text-gray-300 hover:text-purple-500 transition-colors p-1.5 rounded-lg hover:bg-purple-50">
+              <Eye size={15} />
+            </button>
             <button onClick={() => onResetPassword(user.uid, user.name)} title="איפוס סיסמה"
               className="text-gray-300 hover:text-blue-500 transition-colors p-1.5 rounded-lg hover:bg-blue-50">
               <RotateCcw size={15} />
@@ -487,6 +496,16 @@ export default function Contractors() {
     fetchUsers();
   };
 
+  const handleImpersonate = async (uid: string, role: string) => {
+    try {
+      const res = await api.post(`/auth/impersonate/${uid}`);
+      const url = `${window.location.origin}/impersonate?token=${encodeURIComponent(res.data.token)}&role=${res.data.role}`;
+      window.open(url, "_blank");
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "שגיאה");
+    }
+  };
+
   const handleResetPassword = async (uid: string, name: string) => {
     const pw = prompt(`סיסמה חדשה עבור ${name} (לפחות 6 תווים):`);
     if (!pw) return;
@@ -599,7 +618,7 @@ export default function Contractors() {
         <div className="grid gap-3">
           {contractors.map(u => (
             <ContractorCard key={u.uid} user={u}
-              onDelete={handleDelete} onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} />
+              onDelete={handleDelete} onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} onImpersonate={handleImpersonate} />
           ))}
           {contractors.length === 0 && <p className="text-gray-400 text-sm">אין קבלנים עדיין</p>}
         </div>
@@ -610,7 +629,7 @@ export default function Contractors() {
         <div className="grid gap-3">
           {admins.map(u => (
             <ContractorCard key={u.uid} user={u}
-              onDelete={handleDelete} onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} />
+              onDelete={handleDelete} onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} onImpersonate={handleImpersonate} />
           ))}
         </div>
       </div>
