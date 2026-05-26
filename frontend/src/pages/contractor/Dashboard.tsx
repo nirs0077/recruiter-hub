@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api";
-import { MapPin, Wifi, Users, ChevronLeft, Loader2, Copy, Check, Share2 } from "lucide-react";
+import { MapPin, Wifi, Users, ChevronLeft, Loader2, Copy, Check, Share2, UserCheck } from "lucide-react";
 import { useAuth } from "../../AuthContext";
 
 interface Job {
@@ -46,9 +46,16 @@ export default function ContractorDashboard() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">המשרות שלי</h1>
-        <p className="text-gray-500 text-sm mt-1">{jobs.length} משרות שויכו אליך</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">המשרות שלי</h1>
+          <p className="text-gray-500 text-sm mt-1">{jobs.length} משרות שויכו אליך</p>
+        </div>
+        <Link to="/contractor/candidates"
+          className="flex items-center gap-2 text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          <UserCheck size={16} />
+          כל המועמדים שלי
+        </Link>
       </div>
 
       <div className="space-y-3">

@@ -12,6 +12,7 @@ import CandidateCardPage from "./pages/admin/CandidateCard";
 import AdminSettings from "./pages/admin/Settings";
 import ContractorDashboard from "./pages/contractor/Dashboard";
 import ContractorJobDetail from "./pages/contractor/JobDetail";
+import AllCandidates from "./pages/contractor/AllCandidates";
 import Apply from "./pages/public/Apply";
 import Register from "./pages/public/Register";
 import Impersonate from "./pages/Impersonate";
@@ -45,6 +46,7 @@ function AppRoutes() {
       {/* Contractor */}
       <Route path="/contractor" element={<ProtectedRoute role="contractor"><Layout><ContractorDashboard /></Layout></ProtectedRoute>} />
       <Route path="/contractor/jobs/:jobId" element={<ProtectedRoute role="contractor"><Layout><ContractorJobDetail /></Layout></ProtectedRoute>} />
+      <Route path="/contractor/candidates" element={<ProtectedRoute role="contractor"><Layout><AllCandidates /></Layout></ProtectedRoute>} />
 
       {/* Default */}
       <Route path="/" element={

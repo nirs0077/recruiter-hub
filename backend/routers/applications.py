@@ -138,6 +138,17 @@ async def get_job_applications(job_id: str, user=Depends(get_current_user)):
     return [_app_to_out(d.id, d.to_dict()) for d in docs]
 
 
+@router.get("/mine", response_model=list[ApplicationOut])
+async def get_my_applications(user=Depends(get_current_user)):
+    if user["role"] != UserRole.contractor:
+        raise HTTPException(status_code=403, detail="Contractors only")
+    db = get_db()
+    docs = db.collection("applications").where("contractor_id", "==", user["uid"]).stream()
+    results = [_app_to_out(d.id, d.to_dict()) for d in docs]
+    results.sort(key=lambda a: a.created_at or "", reverse=True)
+    return results
+
+
 @router.get("/{app_id}", response_model=ApplicationOut)
 async def get_application(app_id: str, user=Depends(get_current_user)):
     db = get_db()
