@@ -496,7 +496,7 @@ export default function Contractors() {
     fetchUsers();
   };
 
-  const handleImpersonate = async (uid: string, role: string) => {
+  const handleImpersonate = async (uid: string, _role: string) => {
     try {
       const res = await api.post(`/auth/impersonate/${uid}`);
       const url = `${window.location.origin}/impersonate?token=${encodeURIComponent(res.data.token)}&role=${res.data.role}`;
