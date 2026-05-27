@@ -1,5 +1,6 @@
 """Google Drive integration: upload CVs to contractor sub-folders."""
 import io
+import json
 import os
 import logging
 
@@ -11,7 +12,16 @@ SCOPES = ["https://www.googleapis.com/auth/drive"]
 def _service(credentials_path: str):
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
-    creds = service_account.Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
+
+    # Prefer env var JSON (for Render / cloud hosting)
+    cred_json = os.environ.get("GOOGLE_DRIVE_CREDENTIALS_JSON")
+    if cred_json:
+        info = json.loads(cred_json)
+        creds = service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+    elif os.path.exists(credentials_path):
+        creds = service_account.Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
+    else:
+        raise RuntimeError("Google Drive credentials not found")
     return build("drive", "v3", credentials=creds)
 
 
@@ -40,7 +50,8 @@ def upload_cv_to_drive(
     mime_type: str = "application/octet-stream",
 ) -> str | None:
     """Upload a CV file under root/contractor_name/ and return a shareable view URL."""
-    if not root_folder_id or not os.path.exists(credentials_path):
+    has_creds = os.environ.get("GOOGLE_DRIVE_CREDENTIALS_JSON") or os.path.exists(credentials_path)
+    if not root_folder_id or not has_creds:
         return None
     try:
         from googleapiclient.http import MediaIoBaseUpload

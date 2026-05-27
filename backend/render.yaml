@@ -20,3 +20,5 @@ services:
         sync: false         # Gmail address for sending notifications
       - key: SMTP_PASSWORD
         sync: false         # Gmail App Password (not your regular password)
+      - key: GOOGLE_DRIVE_CREDENTIALS_JSON
+        sync: false         # paste the full service account JSON (one line)
