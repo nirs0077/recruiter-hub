@@ -154,6 +154,9 @@ async def submit_application(
 
     # Upload to Drive only if no existing URL
     if not cv_drive_url and app_settings["google_drive_folder_id"]:
+        logger.info("Starting Drive upload: folder=%s contractor=%s file=%s bytes=%d",
+                    app_settings["google_drive_folder_id"], contractor_name,
+                    cv_file.filename, len(file_bytes))
         cv_drive_url = upload_cv_to_drive(
             app_settings["google_drive_credentials_path"],
             app_settings["google_drive_folder_id"],
@@ -161,6 +164,7 @@ async def submit_application(
             cv_file.filename,
             file_bytes,
         )
+        logger.info("Drive upload result: %s", cv_drive_url)
 
     if existing_candidate is None:
         _create_candidate(db, candidate_id, analysis, cv_text, cv_drive_url)
