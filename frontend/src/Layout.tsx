@@ -58,7 +58,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 space-y-1">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 w-full transition-colors"
@@ -66,6 +66,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <LogOut size={18} />
             יציאה
           </button>
+          <p className="text-[10px] text-gray-300 text-center px-1">
+            v{new Date(__BUILD_TIME__).toLocaleDateString("he-IL")} {new Date(__BUILD_TIME__).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}
+          </p>
         </div>
       </aside>
 
