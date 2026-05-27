@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from firebase_init import get_db
 from models.schemas import CandidateOut, CandidateDetail, UserRole
 from routers.auth import get_current_user, require_admin
@@ -145,3 +145,58 @@ async def get_candidate(candidate_id: str, user=Depends(get_current_user)):
         created_at=data.get("created_at"),
         applications=applications,
     )
+
+
+@router.delete("/{candidate_id}")
+async def delete_candidate(
+    candidate_id: str,
+    force: bool = Query(default=False),
+    user=Depends(get_current_user),
+):
+    db = get_db()
+    doc = db.collection("candidates").document(candidate_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404, detail="מועמד לא נמצא")
+
+    if user["role"] == UserRole.admin:
+        apps = list(db.collection("applications").where("candidate_id", "==", candidate_id).stream())
+        if apps and not force:
+            contractors: dict[str, str] = {}
+            for app_doc in apps:
+                a = app_doc.to_dict()
+                cid = a.get("contractor_id", "")
+                cname = a.get("contractor_name", "")
+                if cid and cid not in contractors:
+                    contractors[cid] = cname
+            if contractors:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "message": "המועמד משויך לקבלנים",
+                        "contractors": [{"id": k, "name": v} for k, v in contractors.items()],
+                    },
+                )
+        for app_doc in apps:
+            app_doc.reference.delete()
+        db.collection("candidates").document(candidate_id).delete()
+        return {"ok": True}
+
+    if user["role"] == UserRole.contractor:
+        apps = list(
+            db.collection("applications")
+            .where("candidate_id", "==", candidate_id)
+            .where("contractor_id", "==", user["uid"])
+            .stream()
+        )
+        if not apps:
+            raise HTTPException(status_code=403, detail="אין לך גישה למועמד זה")
+        for app_doc in apps:
+            app_doc.reference.delete()
+        remaining = list(
+            db.collection("applications").where("candidate_id", "==", candidate_id).limit(1).stream()
+        )
+        if not remaining:
+            db.collection("candidates").document(candidate_id).delete()
+        return {"ok": True}
+
+    raise HTTPException(status_code=403, detail="Forbidden")

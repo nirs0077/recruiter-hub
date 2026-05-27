@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, Loader2, Users, GitCompare, ChevronDown, ChevronUp,
-  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send
+  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send, CalendarDays, Trash2
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
@@ -19,6 +19,7 @@ interface Candidate {
   cv_drive_url?: string;
   applications: Application[];
   bestScore: number;
+  firstSeen?: string;
 }
 
 function toWhatsApp(phone: string, name: string) {
@@ -33,6 +34,20 @@ export default function AllCandidates() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete(candId: string) {
+    setDeleting(true);
+    try {
+      await api.delete(`/candidates/${candId}`);
+      setCandidates(prev => prev.filter(c => c.id !== candId));
+      setDeleteConfirm(null);
+      setExpanded(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     api.get("/applications/mine").then(r => {
@@ -57,6 +72,9 @@ export default function AllCandidates() {
         const cand = map.get(cid)!;
         cand.applications.push(app);
         cand.bestScore = Math.max(cand.bestScore, app.score ?? 0);
+        if (app.created_at) {
+          if (!cand.firstSeen || app.created_at < cand.firstSeen) cand.firstSeen = app.created_at;
+        }
       }
       const list = Array.from(map.values()).sort((a, b) => b.bestScore - a.bestScore);
       setCandidates(list);
@@ -122,6 +140,7 @@ export default function AllCandidates() {
                     <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5 flex-wrap">
                       {cand.phone && <span className="flex items-center gap-1"><Phone size={10} />{cand.phone}</span>}
                       {cand.email && <span className="flex items-center gap-1 truncate"><Mail size={10} />{cand.email}</span>}
+                      {cand.firstSeen && <span className="flex items-center gap-1"><CalendarDays size={10} />{new Date(cand.firstSeen).toLocaleDateString("he-IL")}</span>}
                     </div>
                   </div>
 
@@ -134,25 +153,45 @@ export default function AllCandidates() {
                 {isOpen && (
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-4">
                     {/* Contact + actions */}
-                    <div className="flex flex-wrap gap-2">
-                      {cand.phone && (
-                        <a href={toWhatsApp(cand.phone, cand.name)} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
-                          <MessageCircle size={12} />שלח WhatsApp
-                        </a>
-                      )}
-                      {cand.email && (
-                        <a
-                          href={`mailto:${cand.email}?subject=${encodeURIComponent("התעניינות בקורות חיים")}&body=${encodeURIComponent(`שלום ${cand.name},\n\nתודה על שליחת קורות החיים שלך. נחזור אליך בהקדם.\n\nבברכה`)}`}
-                          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
-                          <Send size={12} />שלח מייל
-                        </a>
-                      )}
-                      {cand.cv_drive_url && (
-                        <a href={cand.cv_drive_url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium px-3 py-1.5 rounded-lg">
-                          <FileText size={12} />קורות חיים (Drive)
-                        </a>
+                    <div className="flex flex-wrap gap-2 items-center justify-between">
+                      <div className="flex flex-wrap gap-2">
+                        {cand.phone && (
+                          <a href={toWhatsApp(cand.phone, cand.name)} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+                            <MessageCircle size={12} />שלח WhatsApp
+                          </a>
+                        )}
+                        {cand.email && (
+                          <a
+                            href={`mailto:${cand.email}?subject=${encodeURIComponent("התעניינות בקורות חיים")}&body=${encodeURIComponent(`שלום ${cand.name},\n\nתודה על שליחת קורות החיים שלך. נחזור אליך בהקדם.\n\nבברכה`)}`}
+                            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+                            <Send size={12} />שלח מייל
+                          </a>
+                        )}
+                        {cand.cv_drive_url && (
+                          <a href={cand.cv_drive_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-medium px-3 py-1.5 rounded-lg">
+                            <FileText size={12} />קורות חיים (Drive)
+                          </a>
+                        )}
+                      </div>
+                      {deleteConfirm === cand.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-red-600 font-medium">למחוק את {cand.name}?</span>
+                          <button onClick={() => handleDelete(cand.id)} disabled={deleting}
+                            className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-medium disabled:opacity-50">
+                            {deleting ? "מוחק..." : "כן, מחק"}
+                          </button>
+                          <button onClick={() => setDeleteConfirm(null)}
+                            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg">
+                            ביטול
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setDeleteConfirm(cand.id)}
+                          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-2.5 py-1.5 rounded-lg transition-colors">
+                          <Trash2 size={12} />מחק מועמד
+                        </button>
                       )}
                     </div>
 

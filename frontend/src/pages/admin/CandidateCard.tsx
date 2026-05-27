@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight, Briefcase, Star, CheckCircle, XCircle, Loader2,
   Phone, Mail, MessageCircle, FileText, Clock, AlertCircle, Send,
-  ChevronDown, ChevronUp, Copy, Check, GraduationCap, Building2, Award
+  ChevronDown, ChevronUp, Copy, Check, GraduationCap, Building2, Award, CalendarDays,
+  Trash2, X, UserCheck
 } from "lucide-react";
 import api from "../../api";
 import { STATUS_META } from "../../components/ApplicationCard";
@@ -45,6 +46,7 @@ interface CandidateDetail {
   companies?: string[];
   has_management_exp?: boolean;
   cv_drive_url?: string;
+  created_at?: string;
   applications: Application[];
 }
 
@@ -79,6 +81,7 @@ const SKILL_COLORS = [
 
 export default function CandidateCardPage() {
   const { candidateId } = useParams();
+  const navigate = useNavigate();
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -88,6 +91,9 @@ export default function CandidateCardPage() {
   const [sendingCivi, setSendingCivi] = useState<string | null>(null);
   const [civiError, setCiviError] = useState<Record<string, string>>({});
   const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [contractorsWarning, setContractorsWarning] = useState<{ id: string; name: string }[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     api.get(`/candidates/${candidateId}`)
@@ -96,6 +102,20 @@ export default function CandidateCardPage() {
   }, [candidateId]);
 
   const reload = () => api.get(`/candidates/${candidateId}`).then(r => setCandidate(r.data));
+
+  const handleDelete = async (force = false) => {
+    setDeleting(true);
+    try {
+      await api.delete(`/candidates/${candidateId}${force ? "?force=true" : ""}`);
+      navigate("/admin/candidates");
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setContractorsWarning(err.response.data.detail.contractors ?? []);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleStatusConfirm = async (appId: string) => {
     const status = pendingStatus[appId];
@@ -133,9 +153,60 @@ export default function CandidateCardPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <Link to="/admin/candidates" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 mb-5">
-        <ArrowRight size={16} />חזרה למועמדים
-      </Link>
+      {/* Delete modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900">מחיקת מועמד</h3>
+              <button onClick={() => { setShowDeleteModal(false); setContractorsWarning(null); }} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            {contractorsWarning ? (
+              <>
+                <p className="text-sm text-red-700 font-medium mb-2">המועמד {candidate?.name} משויך לקבלנים הבאים:</p>
+                <ul className="text-sm text-gray-700 mb-4 space-y-1">
+                  {contractorsWarning.map(c => (
+                    <li key={c.id} className="flex items-center gap-1.5"><UserCheck size={13} className="text-indigo-500" />{c.name}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-gray-500 mb-4">מחיקה תסיר את המועמד וכל ההגשות שלו מכל הקבלנים.</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setShowDeleteModal(false); setContractorsWarning(null); }}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">ביטול</button>
+                  <button onClick={() => handleDelete(true)} disabled={deleting}
+                    className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50">
+                    {deleting ? "מוחק..." : "מחק בכל זאת"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-700 mb-4">האם למחוק את <strong>{candidate?.name}</strong> מהמאגר? פעולה זו אינה הפיכה.</p>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => setShowDeleteModal(false)}
+                    className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">ביטול</button>
+                  <button onClick={() => handleDelete(false)} disabled={deleting}
+                    className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50">
+                    {deleting ? "מוחק..." : "מחק"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between mb-5">
+        <Link to="/admin/candidates" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600">
+          <ArrowRight size={16} />חזרה למועמדים
+        </Link>
+        <button
+          onClick={() => { setShowDeleteModal(true); setContractorsWarning(null); }}
+          className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 border border-red-200 hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <Trash2 size={14} />מחק מועמד
+        </button>
+      </div>
 
       {/* ── HUNTER-AI style profile card ── */}
       <div className="bg-[#1a1f2e] rounded-2xl overflow-hidden shadow-2xl mb-6 border border-[#2d3548]">
@@ -169,6 +240,12 @@ export default function CandidateCardPage() {
                 {candidate.has_management_exp && (
                   <span className="flex items-center gap-1 text-xs bg-purple-900 text-purple-300 px-2.5 py-1 rounded-full border border-purple-700">
                     <Star size={11} />ניהולי
+                  </span>
+                )}
+                {candidate.created_at && (
+                  <span className="flex items-center gap-1 text-xs bg-[#2d3548] text-gray-400 px-2.5 py-1 rounded-full border border-[#3d4860]">
+                    <CalendarDays size={11} className="text-gray-500" />
+                    נכנס {new Date(candidate.created_at).toLocaleDateString("he-IL")}
                   </span>
                 )}
               </div>
