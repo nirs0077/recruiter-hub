@@ -31,7 +31,8 @@ STATUS_LABELS = {
     ApplicationStatus.pending: "ממתין",
     ApplicationStatus.no_answer: "לא ענה",
     ApplicationStatus.in_review: "בבדיקה",
-    ApplicationStatus.sent_to_civi: "נשלח אל CIVI",
+    ApplicationStatus.civi_requested: "בקשה לשליחה אל CIVI",
+    ApplicationStatus.sent_to_civi: "בוצעה שליחה אל CIVI",
     ApplicationStatus.sent_to_meeting: "נשלח לפגישה",
     ApplicationStatus.first_interview: "תואם ראיון ראשון",
     ApplicationStatus.second_interview: "תואם ראיון המשך",
@@ -293,12 +294,12 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         "timestamp": now,
     }]
 
-    # Auto-note when admin moves to in_process
-    if body.status == ApplicationStatus.in_process and user["role"] == UserRole.admin:
+    # Auto-note when admin requests CIVI send
+    if body.status == ApplicationStatus.civi_requested and user["role"] == UserRole.admin:
         history_entries.append({
             "status": "system",
             "status_label": "הודעת מערכת",
-            "note": "יש להגיש מועמד זה למערכת CIVI — לחץ על 'שלח לCIVI' לשליחה ישירה",
+            "note": "האדמין ביקש לשלוח מועמד זה למערכת CIVI — לחץ על 'שלח לCIVI' לשליחה ישירה",
             "changed_by": "system",
             "changed_by_name": "מערכת",
             "timestamp": now,
@@ -330,8 +331,8 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         }
         db.collection("tasks").document(str(_uuid.uuid4())).set(task_data)
 
-    # Email contractor when admin sets in_process
-    if body.status == ApplicationStatus.in_process and user["role"] == UserRole.admin:
+    # Email contractor when admin requests CIVI send
+    if body.status == ApplicationStatus.civi_requested and user["role"] == UserRole.admin:
         import asyncio
         try:
             from services.email_service import send_email, candidate_in_process_email
@@ -386,6 +387,8 @@ async def send_to_civi(app_id: str, body: SendToCiviRequest, user=Depends(get_cu
         raise HTTPException(status_code=403)
     if d.get("civi_sent_at"):
         raise HTTPException(status_code=400, detail="מועמד זה כבר נשלח למערכת CIVI")
+    if user["role"] == UserRole.contractor and d.get("status") != ApplicationStatus.civi_requested:
+        raise HTTPException(status_code=403, detail="שליחה לCIVI אפשרית רק לאחר בקשת אדמין")
 
     score = d.get("score", 0)
     threshold = _get_civi_threshold(db)

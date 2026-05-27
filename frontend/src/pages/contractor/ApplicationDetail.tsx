@@ -49,7 +49,7 @@ export default function ApplicationDetail() {
 
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
-  const canSendCivi = app.status === "in_process" && score >= civiThreshold && !app.civi_sent_at;
+  const canSendCivi = app.status === "civi_requested" && score >= civiThreshold && !app.civi_sent_at;
   const systemNotes = (app.status_history || []).filter(h => h.changed_by === "system");
   const latestSystemNote = systemNotes[systemNotes.length - 1];
 
@@ -155,7 +155,7 @@ export default function ApplicationDetail() {
       </div>
 
       {/* ── System alert ── */}
-      {latestSystemNote && app.status === "in_process" && !app.civi_sent_at && (
+      {latestSystemNote && app.status === "civi_requested" && !app.civi_sent_at && (
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
           <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-500" />
           <span>{latestSystemNote.note}</span>

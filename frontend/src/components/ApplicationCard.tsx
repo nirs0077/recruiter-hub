@@ -53,32 +53,33 @@ interface Props {
 }
 
 export const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  // בסימון
-  pending:           { label: "ממתין",              color: "text-yellow-700",  bg: "bg-yellow-50 border-yellow-200" },
-  no_answer:         { label: "לא ענה",             color: "text-orange-600",  bg: "bg-orange-50 border-orange-200" },
-  in_review:         { label: "בבדיקה",             color: "text-blue-600",    bg: "bg-blue-50 border-blue-200" },
-  sent_to_civi:      { label: "נשלח אל CIVI",       color: "text-indigo-700",  bg: "bg-indigo-50 border-indigo-200" },
+  // בסינון
+  pending:           { label: "ממתין",                      color: "text-yellow-700",  bg: "bg-yellow-50 border-yellow-200" },
+  no_answer:         { label: "לא ענה",                     color: "text-orange-600",  bg: "bg-orange-50 border-orange-200" },
+  in_review:         { label: "בבדיקה",                     color: "text-blue-600",    bg: "bg-blue-50 border-blue-200" },
+  known_candidate:   { label: "מועמד מוכר",                 color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
+  civi_requested:    { label: "בקשה לשליחה אל CIVI",        color: "text-indigo-700",  bg: "bg-indigo-100 border-indigo-300" },
+  sent_to_civi:      { label: "בוצעה שליחה אל CIVI",        color: "text-indigo-800",  bg: "bg-indigo-50 border-indigo-200" },
   // בתהליך
-  sent_to_meeting:   { label: "נשלח לפגישה",        color: "text-teal-700",    bg: "bg-teal-50 border-teal-200" },
-  first_interview:   { label: "תואם ראיון ראשון",   color: "text-teal-700",    bg: "bg-teal-50 border-teal-200" },
-  second_interview:  { label: "תואם ראיון המשך",    color: "text-cyan-700",    bg: "bg-cyan-50 border-cyan-200" },
-  professional_test: { label: "מבחן מקצועי",        color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
-  integrity_test:    { label: "מבחן אמינות",        color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
-  reference_check:   { label: "בדיקת ממליצים",     color: "text-violet-700",  bg: "bg-violet-50 border-violet-200" },
-  contract_offer:    { label: "הצעה לחוזה",         color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+  sent_to_meeting:   { label: "נשלח לפגישה",                color: "text-teal-700",    bg: "bg-teal-50 border-teal-200" },
+  first_interview:   { label: "תואם ראיון ראשון",           color: "text-teal-700",    bg: "bg-teal-50 border-teal-200" },
+  second_interview:  { label: "תואם ראיון המשך",            color: "text-cyan-700",    bg: "bg-cyan-50 border-cyan-200" },
+  professional_test: { label: "מבחן מקצועי",                color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
+  integrity_test:    { label: "מבחן אמינות",                color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
+  reference_check:   { label: "בדיקת ממליצים",              color: "text-violet-700",  bg: "bg-violet-50 border-violet-200" },
+  contract_offer:    { label: "הצעה לחוזה",                 color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
   // התקבל
-  signed_contract:   { label: "חתם/ה על חוזה",     color: "text-green-700",   bg: "bg-green-50 border-green-200" },
-  started_working:   { label: "התחיל/ה לעבוד",     color: "text-green-800",   bg: "bg-green-100 border-green-300" },
+  signed_contract:   { label: "חתם/ה על חוזה",             color: "text-green-700",   bg: "bg-green-50 border-green-200" },
+  started_working:   { label: "התחיל/ה לעבוד",             color: "text-green-800",   bg: "bg-green-100 border-green-300" },
   // נדחה
-  weak:              { label: "מועמד חלש",          color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
-  rejected:          { label: "נדחה",               color: "text-red-600",     bg: "bg-red-50 border-red-200" },
+  weak:              { label: "מועמד חלש",                  color: "text-gray-500",    bg: "bg-gray-50 border-gray-200" },
+  rejected:          { label: "נדחה",                       color: "text-red-600",     bg: "bg-red-50 border-red-200" },
   // Legacy
-  in_process:        { label: "בתהליך גיוס",       color: "text-green-700",   bg: "bg-green-50 border-green-200" },
-  known_candidate:   { label: "מועמד מוכר",        color: "text-purple-700",  bg: "bg-purple-50 border-purple-200" },
+  in_process:        { label: "בתהליך גיוס (ישן)",          color: "text-green-700",   bg: "bg-green-50 border-green-200" },
 };
 
 export const STATUS_GROUPS = [
-  { label: "בסימון",  statuses: ["pending", "no_answer", "in_review", "sent_to_civi"] },
+  { label: "בסינון",  statuses: ["pending", "no_answer", "in_review", "known_candidate", "civi_requested", "sent_to_civi"] },
   { label: "בתהליך",  statuses: ["sent_to_meeting", "first_interview", "second_interview", "professional_test", "integrity_test", "reference_check", "contract_offer"] },
   { label: "התקבל",   statuses: ["signed_contract", "started_working"] },
   { label: "נדחה",    statuses: ["weak", "rejected"] },
@@ -108,9 +109,8 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
 
-  // CIVI available only when admin set "in_process" + score threshold + not already sent
-  const canSendCivi = app.status === "in_process" && score >= civiThreshold && !app.civi_sent_at;
-  const adminApproved = app.status === "in_process" && !app.civi_sent_at;
+  const canSendCivi = app.status === "civi_requested" && score >= civiThreshold && !app.civi_sent_at;
+  const adminApproved = app.status === "civi_requested" && !app.civi_sent_at;
 
   return (
     <>

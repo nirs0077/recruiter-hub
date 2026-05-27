@@ -28,9 +28,11 @@ class ApplicationStatus(str, Enum):
     # נדחה
     weak = "weak"
     rejected = "rejected"
+    # בסינון - ניהול אדמין
+    known_candidate = "known_candidate"
+    civi_requested = "civi_requested"
     # Legacy (backward compatibility)
     in_process = "in_process"
-    known_candidate = "known_candidate"
 
 
 class JobStatus(str, Enum):
