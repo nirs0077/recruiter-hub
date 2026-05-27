@@ -6,7 +6,8 @@ import {
   Clock, Loader2
 } from "lucide-react";
 import api from "../../api";
-import { Application, STATUS_META, StatusHistoryEntry } from "../../components/ApplicationCard";
+import type { Application } from "../../components/ApplicationCard";
+import { STATUS_META } from "../../components/ApplicationCard";
 
 const REQUIRES_NOTE = new Set(["known_candidate"]);
 

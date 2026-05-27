@@ -5,7 +5,8 @@ import {
   Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye
 } from "lucide-react";
 import api from "../../api";
-import { Application, STATUS_META } from "../../components/ApplicationCard";
+import type { Application } from "../../components/ApplicationCard";
+import { STATUS_META } from "../../components/ApplicationCard";
 
 interface Candidate {
   id: string;

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowRight, Loader2 } from "lucide-react";
 import api from "../../api";
-import ApplicationCard, { Application } from "../../components/ApplicationCard";
+import type { Application } from "../../components/ApplicationCard";
+import ApplicationCard from "../../components/ApplicationCard";
 
 export default function ContractorJobDetail() {
   const { jobId } = useParams();
