@@ -85,7 +85,7 @@ def analyze_cv(cv_text: str, job: dict) -> dict:
 
 החזר JSON בלבד (ללא טקסט נוסף) בפורמט הזה:
 {{
-  "candidate_name": "שם מלא של המועמד",
+  "candidate_name": "שם מלא של המועמד — השאר בשפה המקורית (אנגלית/עברית), אל תתרגם",
   "candidate_email": "אימייל אם קיים אחרת null",
   "candidate_phone": "טלפון אם קיים אחרת null",
   "current_title": "התפקיד הנוכחי / האחרון של המועמד",
