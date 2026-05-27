@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight, Loader2, Users, GitCompare, ChevronDown, ChevronUp,
   Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send, CalendarDays, Trash2,
-  Clock, User, AlertCircle
+  Clock, User
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";

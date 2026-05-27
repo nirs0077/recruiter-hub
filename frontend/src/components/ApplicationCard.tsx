@@ -4,7 +4,6 @@ import {
   ChevronDown, ChevronUp, Star, Phone, Mail, MessageCircle,
   FileText, Send, AlertCircle, CheckCircle2, Clock, Eye, CalendarDays
 } from "lucide-react";
-import api from "../api";
 import CiviModal from "./CiviModal";
 
 export interface Application {
