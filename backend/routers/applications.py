@@ -64,12 +64,23 @@ def _app_to_out(doc_id: str, d: dict) -> ApplicationOut:
     )
 
 
-def _get_civi_threshold(db) -> float:
+def _get_app_settings(db) -> dict:
+    """Merge Firestore settings on top of env defaults."""
     settings = get_settings()
+    defaults = {
+        "score_threshold": settings.score_threshold,
+        "civi_send_threshold": settings.civi_send_threshold,
+        "google_drive_folder_id": settings.google_drive_folder_id,
+        "google_drive_credentials_path": settings.google_drive_credentials_path,
+    }
     doc = db.collection("settings").document("app_settings").get()
     if doc.exists:
-        return doc.to_dict().get("civi_send_threshold", settings.civi_send_threshold)
-    return settings.civi_send_threshold
+        defaults.update({k: v for k, v in doc.to_dict().items() if v is not None})
+    return defaults
+
+
+def _get_civi_threshold(db) -> float:
+    return _get_app_settings(db)["civi_send_threshold"]
 
 
 # ── Public submit ─────────────────────────────────────────────────────────────
@@ -82,7 +93,7 @@ async def submit_application(
     cv_file: UploadFile = File(...),
 ):
     db = get_db()
-    settings = get_settings()
+    app_settings = _get_app_settings(db)
 
     job_doc = db.collection("jobs").document(job_id).get()
     if not job_doc.exists:
@@ -101,7 +112,7 @@ async def submit_application(
     candidate_email = analysis.get("candidate_email") or ""
     candidate_name = analysis.get("candidate_name") or "לא זוהה"
 
-    status = ApplicationStatus.pending if score >= settings.score_threshold else ApplicationStatus.weak
+    status = ApplicationStatus.pending if score >= app_settings["score_threshold"] else ApplicationStatus.weak
 
     candidate_id = str(uuid.uuid4())
     cv_drive_url = None
@@ -115,10 +126,10 @@ async def submit_application(
             break
 
     # Upload to Drive only if no existing URL
-    if not cv_drive_url and settings.google_drive_folder_id:
+    if not cv_drive_url and app_settings["google_drive_folder_id"]:
         cv_drive_url = upload_cv_to_drive(
-            settings.google_drive_credentials_path,
-            settings.google_drive_folder_id,
+            app_settings["google_drive_credentials_path"],
+            app_settings["google_drive_folder_id"],
             contractor_name,
             cv_file.filename,
             file_bytes,
