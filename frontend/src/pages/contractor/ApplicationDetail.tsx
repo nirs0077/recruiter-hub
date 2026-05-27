@@ -18,6 +18,12 @@ function toWhatsApp(phone: string, name: string, jobTitle: string) {
   return `https://wa.me/${intl}?text=${msg}`;
 }
 
+function toMailto(email: string, name: string, jobTitle: string) {
+  const subject = encodeURIComponent(`קורות חיים למשרת ${jobTitle}`);
+  const body = encodeURIComponent(`שלום ${name},\n\nתודה על שליחת קורות החיים שלך למשרת ${jobTitle}.\nנעיין בקורות החיים שלך ונחזור אליך בהקדם.\n\nבברכה`);
+  return `mailto:${email}?subject=${subject}&body=${body}`;
+}
+
 export default function ApplicationDetail() {
   const { appId } = useParams();
   const [app, setApp] = useState<Application | null>(null);
@@ -157,6 +163,14 @@ export default function ApplicationDetail() {
               className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               <MessageCircle size={15} />שלח WhatsApp
+            </a>
+          )}
+          {app.candidate_email && (
+            <a
+              href={toMailto(app.candidate_email, app.candidate_name || "", app.job_title || "")}
+              className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              <Mail size={15} />שלח מייל
             </a>
           )}
           {app.cv_drive_url && (

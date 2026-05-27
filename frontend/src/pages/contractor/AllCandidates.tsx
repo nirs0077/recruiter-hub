@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, Loader2, Users, GitCompare, ChevronDown, ChevronUp,
-  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye
+  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
@@ -139,6 +139,13 @@ export default function AllCandidates() {
                         <a href={toWhatsApp(cand.phone, cand.name)} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
                           <MessageCircle size={12} />שלח WhatsApp
+                        </a>
+                      )}
+                      {cand.email && (
+                        <a
+                          href={`mailto:${cand.email}?subject=${encodeURIComponent("התעניינות בקורות חיים")}&body=${encodeURIComponent(`שלום ${cand.name},\n\nתודה על שליחת קורות החיים שלך. נחזור אליך בהקדם.\n\nבברכה`)}`}
+                          className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg">
+                          <Send size={12} />שלח מייל
                         </a>
                       )}
                       {cand.cv_drive_url && (
