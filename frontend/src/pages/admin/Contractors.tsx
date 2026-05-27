@@ -103,14 +103,12 @@ function CandidateInJobRow({ c }: { c: CandidateInJob }) {
   );
 }
 
-// ── Job row inside contractor ─────────────────────────────────────────────────
-function JobRow({
-  job, assigned, assignedData, onAssign, onUnassign, toggling,
+// ── Assigned job card (prominent) ────────────────────────────────────────────
+function AssignedJobCard({
+  job, assignedData, onUnassign, toggling,
 }: {
   job: AllJob;
-  assigned: boolean;
   assignedData?: JobWithCandidates;
-  onAssign: (jobId: string) => void;
   onUnassign: (jobId: string) => void;
   toggling: boolean;
 }) {
@@ -119,49 +117,85 @@ function JobRow({
   const avgScore = candidates.length
     ? Math.round(candidates.reduce((s, c) => s + (c.score ?? 0), 0) / candidates.length)
     : null;
+  const statusColor = job.status === "active" ? "bg-green-500" : job.status === "frozen" ? "bg-yellow-400" : "bg-gray-400";
+  const statusLabel = job.status === "active" ? "פעילה" : job.status === "frozen" ? "מוקפאת" : "סגורה";
 
   return (
-    <div className={`border rounded-lg overflow-hidden ${assigned ? "border-blue-200" : "border-gray-200 opacity-70"}`}>
-      <div className="flex items-center gap-3 px-4 py-3 bg-white">
-        <div className={`w-2 h-2 rounded-full shrink-0 ${job.status === "active" ? "bg-green-400" : job.status === "frozen" ? "bg-yellow-400" : "bg-gray-300"}`} />
-        <Briefcase size={14} className="text-gray-400 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-800">{job.title}</p>
-          {(job.location || job.hybrid) && (
-            <p className="text-xs text-gray-400">{[job.location, job.hybrid].filter(Boolean).join(" · ")}</p>
-          )}
+    <div className="border-2 border-blue-200 rounded-xl overflow-hidden shadow-sm">
+      {/* Colored header strip */}
+      <div className="bg-blue-600 px-4 py-2.5 flex items-center gap-2">
+        <Briefcase size={14} className="text-blue-200 shrink-0" />
+        <p className="text-white font-semibold text-sm flex-1 min-w-0 truncate">{job.title}</p>
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full text-white ${statusColor}`}>{statusLabel}</span>
+      </div>
+
+      {/* Stats row */}
+      <div className="bg-blue-50 px-4 py-2 flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-blue-700">
+          <Users size={14} />
+          <span>{candidates.length} מועמדים</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {assigned && (
-            <>
-              <span className="text-xs text-gray-400 flex items-center gap-1"><Users size={12} />{candidates.length}</span>
-              {avgScore != null && <ScoreBadge score={avgScore} />}
-              <button onClick={() => setOpen(!open)} className="text-gray-400 hover:text-gray-600 p-1">
-                {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-            </>
-          )}
+        {avgScore != null && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-blue-500">ציון ממוצע</span>
+            <ScoreBadge score={avgScore} />
+          </div>
+        )}
+        {(job.location || job.hybrid) && (
+          <span className="text-xs text-blue-400 mr-auto">{[job.location, job.hybrid].filter(Boolean).join(" · ")}</span>
+        )}
+        <div className="flex items-center gap-2 mr-auto shrink-0">
           <button
-            onClick={() => assigned ? onUnassign(job.id) : onAssign(job.id)}
-            disabled={toggling}
-            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${
-              assigned
-                ? "bg-red-50 text-red-500 hover:bg-red-100 border border-red-200"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            onClick={() => setOpen(!open)}
+            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium"
           >
-            {toggling ? "..." : assigned ? "הסר שיוך" : "שייך"}
+            {open ? <><ChevronUp size={13} />הסתר מועמדים</> : <><ChevronDown size={13} />הצג מועמדים</>}
+          </button>
+          <button
+            onClick={() => onUnassign(job.id)}
+            disabled={toggling}
+            className="text-xs px-2.5 py-1 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+          >
+            {toggling ? "..." : "הסר"}
           </button>
         </div>
       </div>
-      {open && assigned && (
-        <div className="border-t border-gray-100 bg-gray-50 px-4 py-3">
+
+      {/* Candidates */}
+      {open && (
+        <div className="border-t border-blue-100 bg-white px-4 py-3">
           {candidates.length === 0
             ? <p className="text-xs text-gray-400 py-2 text-center">אין מועמדים עדיין</p>
             : <div className="space-y-2">{candidates.map(c => <CandidateInJobRow key={c.application_id} c={c} />)}</div>
           }
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Unassigned job row (compact) ──────────────────────────────────────────────
+function UnassignedJobRow({
+  job, onAssign, toggling,
+}: {
+  job: AllJob;
+  onAssign: (jobId: string) => void;
+  toggling: boolean;
+}) {
+  return (
+    <div className="border border-gray-200 rounded-lg flex items-center gap-3 px-3 py-2.5 bg-white opacity-70 hover:opacity-100 transition-opacity">
+      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${job.status === "active" ? "bg-green-400" : job.status === "frozen" ? "bg-yellow-400" : "bg-gray-300"}`} />
+      <p className="text-sm text-gray-600 flex-1 min-w-0 truncate">{job.title}</p>
+      {(job.location || job.hybrid) && (
+        <span className="text-xs text-gray-400 hidden sm:block">{[job.location, job.hybrid].filter(Boolean).join(" · ")}</span>
+      )}
+      <button
+        onClick={() => onAssign(job.id)}
+        disabled={toggling}
+        className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 transition-colors shrink-0"
+      >
+        {toggling ? "..." : "שייך"}
+      </button>
     </div>
   );
 }
@@ -387,52 +421,37 @@ function ContractorCard({
             {tab === "jobs" && (
               allJobs.length === 0
                 ? <p className="text-sm text-gray-400 text-center py-6">אין משרות במערכת</p>
-                : <div className="space-y-2">
-                    {/* Active assigned */}
-                    {allJobs.filter(j => assignedIds.has(j.id) && j.status === "active").length > 0 && (
-                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">משויכות</p>
+                : <div className="space-y-4">
+                    {/* Assigned jobs — prominent */}
+                    {assignedJobsData.length > 0 ? (
+                      <div className="space-y-3">
+                        <p className="text-xs font-bold text-blue-600 uppercase tracking-wide flex items-center gap-2">
+                          <CheckCircle size={13} />משרות משויכות לקבלן זה ({assignedJobsData.length})
+                        </p>
+                        {allJobs.filter(j => assignedIds.has(j.id)).map(j => (
+                          <AssignedJobCard key={j.id} job={j}
+                            assignedData={assignedJobsData.find(a => a.id === j.id)}
+                            onUnassign={handleUnassign}
+                            toggling={togglingJob === j.id} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <Briefcase size={24} className="mx-auto text-blue-200 mb-2" />
+                        <p className="text-sm text-blue-400">לא שויכו משרות לקבלן זה</p>
+                      </div>
                     )}
-                    {allJobs.filter(j => assignedIds.has(j.id) && j.status === "active").map(j => (
-                      <JobRow key={j.id} job={j} assigned={true}
-                        assignedData={assignedJobsData.find(a => a.id === j.id)}
-                        onAssign={handleAssign} onUnassign={handleUnassign}
-                        toggling={togglingJob === j.id} />
-                    ))}
 
-                    {/* Active unassigned */}
+                    {/* Unassigned active jobs */}
                     {allJobs.filter(j => !assignedIds.has(j.id) && j.status === "active").length > 0 && (
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-1">לא משויכות</p>
-                    )}
-                    {allJobs.filter(j => !assignedIds.has(j.id) && j.status === "active").map(j => (
-                      <JobRow key={j.id} job={j} assigned={false}
-                        onAssign={handleAssign} onUnassign={handleUnassign}
-                        toggling={togglingJob === j.id} />
-                    ))}
-
-                    {/* Frozen */}
-                    {allJobs.filter(j => j.status === "frozen").length > 0 && (
-                      <>
-                        <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mt-3 mb-1">מוקפאות</p>
-                        {allJobs.filter(j => j.status === "frozen").map(j => (
-                          <JobRow key={j.id} job={j} assigned={assignedIds.has(j.id)}
-                            assignedData={assignedJobsData.find(a => a.id === j.id)}
-                            onAssign={handleAssign} onUnassign={handleUnassign}
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">הוסף שיוך</p>
+                        {allJobs.filter(j => !assignedIds.has(j.id) && j.status === "active").map(j => (
+                          <UnassignedJobRow key={j.id} job={j}
+                            onAssign={handleAssign}
                             toggling={togglingJob === j.id} />
                         ))}
-                      </>
-                    )}
-
-                    {/* Closed */}
-                    {allJobs.filter(j => j.status === "closed").length > 0 && (
-                      <>
-                        <p className="text-xs font-semibold text-gray-300 uppercase tracking-wide mt-4 mb-1">סגורות</p>
-                        {allJobs.filter(j => j.status === "closed").map(j => (
-                          <JobRow key={j.id} job={j} assigned={assignedIds.has(j.id)}
-                            assignedData={assignedJobsData.find(a => a.id === j.id)}
-                            onAssign={handleAssign} onUnassign={handleUnassign}
-                            toggling={togglingJob === j.id} />
-                        ))}
-                      </>
+                      </div>
                     )}
                   </div>
             )}

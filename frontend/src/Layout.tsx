@@ -24,6 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const contractorLinks = [
     { to: "/contractor", label: "המשרות שלי", icon: Briefcase },
+    { to: "/contractor/candidates", label: "המועמדים שלי", icon: UserCheck },
   ];
 
   const links = isAdmin ? adminLinks : contractorLinks;
