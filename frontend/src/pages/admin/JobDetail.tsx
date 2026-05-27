@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../api";
-import { ArrowRight, MapPin, Wifi, Star, ChevronDown, ChevronUp, User, Loader2 } from "lucide-react";
+import { ArrowRight, MapPin, Wifi, Star, ChevronDown, ChevronUp, User, Loader2, CalendarDays, X } from "lucide-react";
 import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
 
 interface Application {
@@ -29,6 +29,13 @@ interface Job {
   url: string;
 }
 
+interface ModalState {
+  app: Application;
+  status: string;
+  date: string;
+  note: string;
+}
+
 export default function AdminJobDetail() {
   const { jobId } = useParams();
   const [job, setJob] = useState<Job | null>(null);
@@ -36,6 +43,8 @@ export default function AdminJobDetail() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "strong" | "weak">("strong");
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,8 +61,21 @@ export default function AdminJobDetail() {
     setLoading(false);
   };
 
-  const updateStatus = async (appId: string, status: string) => {
-    await api.patch(`/applications/${appId}/status`, { status, note: "" });
+  const openModal = (e: React.MouseEvent, app: Application) => {
+    e.stopPropagation();
+    setModal({ app, status: app.status, date: "", note: "" });
+  };
+
+  const confirmStatus = async () => {
+    if (!modal) return;
+    setSaving(true);
+    await api.patch(`/applications/${modal.app.id}/status`, {
+      status: modal.status,
+      note: modal.note.trim(),
+      target_date: modal.date || null,
+    });
+    setSaving(false);
+    setModal(null);
     fetchData();
   };
 
@@ -76,6 +98,85 @@ export default function AdminJobDetail() {
 
   return (
     <div>
+      {/* Status modal */}
+      {modal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900">שינוי סטטוס</h3>
+              <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">{modal.app.candidate_name} · {job.title}</p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">סטטוס</label>
+                <select
+                  value={modal.status}
+                  onChange={e => setModal(m => m ? { ...m, status: e.target.value } : m)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  {STATUS_GROUPS.map(group => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.statuses.map(s => (
+                        <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">
+                  <CalendarDays size={11} className="inline ml-1" />תאריך יעד (אופציונלי)
+                </label>
+                <input
+                  type="date"
+                  value={modal.date}
+                  onChange={e => setModal(m => m ? { ...m, date: e.target.value } : m)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">הערה</label>
+                <textarea
+                  value={modal.note}
+                  onChange={e => setModal(m => m ? { ...m, note: e.target.value } : m)}
+                  rows={3}
+                  placeholder="מי נפגש עם המועמד, פרטי ראיון, כל הערה רלוונטית..."
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setModal(null)}
+                className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600 hover:bg-gray-50"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={confirmStatus}
+                disabled={saving}
+                className="flex-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium disabled:opacity-50"
+              >
+                {saving ? "שומר..." : "אשר שינוי"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Link to="/admin/jobs" className="flex items-center gap-1 text-sm text-gray-500 hover:text-blue-600 mb-5">
         <ArrowRight size={16} />
         חזרה למשרות
@@ -137,7 +238,7 @@ export default function AdminJobDetail() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <Link
                     to={`/admin/candidates/${app.candidate_id}`}
                     onClick={(e) => e.stopPropagation()}
@@ -155,20 +256,12 @@ export default function AdminJobDetail() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <select
-                  value={app.status}
-                  onChange={(e) => { e.stopPropagation(); updateStatus(app.id, e.target.value); }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                <button
+                  onClick={(e) => openModal(e, app)}
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-colors"
                 >
-                  {STATUS_GROUPS.map(group => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.statuses.map(s => (
-                        <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  שנה סטטוס
+                </button>
                 {expanded === app.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
               </div>
             </div>
