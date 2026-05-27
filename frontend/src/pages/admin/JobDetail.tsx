@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "../../api";
 import { ArrowRight, MapPin, Wifi, Star, ChevronDown, ChevronUp, User, Loader2 } from "lucide-react";
+import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
 
 interface Application {
   id: string;
@@ -27,15 +28,6 @@ interface Job {
   requirements?: string;
   url: string;
 }
-
-const statusLabel: Record<string, { label: string; color: string }> = {
-  pending: { label: "ממתין", color: "bg-yellow-100 text-yellow-700" },
-  in_process: { label: "בתהליך גיוס", color: "bg-green-100 text-green-700" },
-  weak: { label: "מועמד חלש", color: "bg-gray-100 text-gray-500" },
-  rejected: { label: "נדחה", color: "bg-red-100 text-red-600" },
-  known_candidate: { label: "מועמד מוכר", color: "bg-purple-100 text-purple-700" },
-  sent_to_civi: { label: "נשלח לCIVI", color: "bg-indigo-100 text-indigo-700" },
-};
 
 export default function AdminJobDetail() {
   const { jobId } = useParams();
@@ -153,8 +145,8 @@ export default function AdminJobDetail() {
                   >
                     {app.candidate_name}
                   </Link>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${statusLabel[app.status]?.color || ""}`}>
-                    {statusLabel[app.status]?.label || app.status}
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_META[app.status]?.bg || "bg-gray-50 border-gray-200"} ${STATUS_META[app.status]?.color || "text-gray-600"}`}>
+                    {STATUS_META[app.status]?.label || app.status}
                   </span>
                 </div>
                 <p className="text-xs text-gray-400">
@@ -169,12 +161,13 @@ export default function AdminJobDetail() {
                   onClick={(e) => e.stopPropagation()}
                   className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
                 >
-                  <option value="pending">ממתין</option>
-                  <option value="in_process">בתהליך גיוס</option>
-                  <option value="weak">מועמד חלש</option>
-                  <option value="rejected">נדחה</option>
-                  <option value="known_candidate">מועמד מוכר</option>
-                  <option value="sent_to_civi">נשלח לCIVI</option>
+                  {STATUS_GROUPS.map(group => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.statuses.map(s => (
+                        <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
                 {expanded === app.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
               </div>
