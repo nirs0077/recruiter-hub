@@ -8,6 +8,7 @@ import {
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
 import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
+import CiviModal from "../../components/CiviModal";
 
 function toWhatsApp(phone: string, name: string, jobTitle: string) {
   const d = phone.replace(/\D/g, "");
@@ -31,8 +32,7 @@ export default function ApplicationDetail() {
   const [noteText, setNoteText] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
-  const [sendingCivi, setSendingCivi] = useState(false);
-  const [civiError, setCiviError] = useState("");
+  const [showCiviModal, setShowCiviModal] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -60,21 +60,6 @@ export default function ApplicationDetail() {
       setTargetDate("");
     } finally {
       setSavingStatus(false);
-    }
-  };
-
-  const handleSendCivi = async () => {
-    if (!app) return;
-    setSendingCivi(true);
-    setCiviError("");
-    try {
-      await api.post(`/applications/${app.id}/send-to-civi`);
-      const updated = await api.get(`/applications/${app.id}`);
-      setApp(updated.data);
-    } catch (e: any) {
-      setCiviError(e.response?.data?.detail || "שגיאה בשליחה");
-    } finally {
-      setSendingCivi(false);
     }
   };
 
@@ -263,15 +248,47 @@ export default function ApplicationDetail() {
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
           <p className="text-sm font-semibold text-indigo-800">שליחה למערכת CIVI</p>
           <p className="text-xs text-indigo-600">מועמד זה מאושר לשליחה. לחיצה תשלח מייל למערכת CIVI ותתעד את השליחה.</p>
+          {showCiviModal && app && (
+            <CiviModal
+              appId={app.id}
+              candidateName={app.candidate_name || ""}
+              jobTitle={app.job_title || ""}
+              onSent={async () => {
+                setShowCiviModal(false);
+                const updated = await api.get(`/applications/${app.id}`);
+                setApp(updated.data);
+              }}
+              onClose={() => setShowCiviModal(false)}
+            />
+          )}
           <button
-            onClick={handleSendCivi}
-            disabled={sendingCivi}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors disabled:opacity-60"
+            onClick={() => setShowCiviModal(true)}
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
           >
-            <Send size={15} />{sendingCivi ? "שולח..." : "שלח לCIVI"}
+            <Send size={15} />שלח לCIVI
           </button>
-          {civiError && <p className="text-sm text-red-600">{civiError}</p>}
         </div>
+      )}
+
+      {/* ── Sent email viewer ── */}
+      {app.civi_sent_at && app.civi_email_html && (
+        <details className="mt-2">
+          <summary className="text-xs text-indigo-600 cursor-pointer hover:text-indigo-800 select-none">
+            צפה במייל שנשלח ←
+          </summary>
+          <div className="mt-2 border border-indigo-100 rounded-lg overflow-hidden">
+            <div className="bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700 font-medium border-b border-indigo-100">
+              נושא: {app.civi_email_subject}
+            </div>
+            <iframe
+              srcDoc={app.civi_email_html}
+              sandbox="allow-same-origin"
+              className="w-full"
+              style={{ height: "400px", border: "none" }}
+              title="CIVI email"
+            />
+          </div>
+        </details>
       )}
 
       {/* ── Status change ── */}

@@ -14,6 +14,7 @@ from models.schemas import (
     ApplicationOut,
     ApplicationStatus,
     CheckMatchRequest,
+    SendToCiviRequest,
     StatusUpdateRequest,
     SubmitExistingRequest,
     UserRole,
@@ -76,6 +77,8 @@ def _app_to_out(doc_id: str, d: dict) -> ApplicationOut:
         notes=d.get("notes"),
         cv_drive_url=d.get("cv_drive_url"),
         civi_sent_at=d.get("civi_sent_at"),
+        civi_email_subject=d.get("civi_email_subject"),
+        civi_email_html=d.get("civi_email_html"),
         status_history=d.get("status_history", []),
         created_at=d.get("created_at"),
     )
@@ -332,8 +335,24 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
 
 # ── Send to CIVI ──────────────────────────────────────────────────────────────
 
+@router.get("/{app_id}/civi-preview")
+async def get_civi_preview(app_id: str, user=Depends(get_current_user)):
+    """Return the default subject and html for the CIVI email (for pre-send editing)."""
+    db = get_db()
+    doc = db.collection("applications").document(app_id).get()
+    if not doc.exists:
+        raise HTTPException(status_code=404)
+    d = doc.to_dict()
+    if user["role"] == UserRole.contractor and d.get("contractor_id") != user["uid"]:
+        raise HTTPException(status_code=403)
+    contractor_doc = db.collection("users").document(d.get("contractor_id", "")).get()
+    contractor_name = contractor_doc.to_dict().get("name", "") if contractor_doc.exists else ""
+    subject, html = _build_civi_email(d, contractor_name)
+    return {"subject": subject, "html": html}
+
+
 @router.post("/{app_id}/send-to-civi")
-async def send_to_civi(app_id: str, user=Depends(get_current_user)):
+async def send_to_civi(app_id: str, body: SendToCiviRequest, user=Depends(get_current_user)):
     db = get_db()
     settings = get_settings()
 
@@ -363,7 +382,10 @@ async def send_to_civi(app_id: str, user=Depends(get_current_user)):
     contractor_email = contractor.get("email", "")
     contractor_name = contractor.get("name", "")
 
-    subject, html = _build_civi_email(d, contractor_name)
+    custom_msg = body.custom_message or ""
+    subject, html = _build_civi_email(d, contractor_name, custom_msg)
+    if body.subject_override and body.subject_override.strip():
+        subject = body.subject_override.strip()
     _send_civi_email(settings, contractor_email, contractor_name, subject, html)
 
     now = datetime.utcnow().isoformat()
@@ -371,6 +393,8 @@ async def send_to_civi(app_id: str, user=Depends(get_current_user)):
         "status": ApplicationStatus.sent_to_civi,
         "civi_sent_at": now,
         "civi_sent_by": user["uid"],
+        "civi_email_subject": subject,
+        "civi_email_html": html,
         "status_history": fs.ArrayUnion([{
             "status": ApplicationStatus.sent_to_civi,
             "status_label": "נשלח למערכת CIVI",
@@ -384,7 +408,7 @@ async def send_to_civi(app_id: str, user=Depends(get_current_user)):
     return {"ok": True, "sent_at": now}
 
 
-def _build_civi_email(d: dict, contractor_name: str) -> tuple[str, str]:
+def _build_civi_email(d: dict, contractor_name: str, custom_message: str = "") -> tuple[str, str]:
     name = d.get("candidate_name", "")
     job = d.get("job_title", "")
     score = d.get("score", 0)
@@ -398,10 +422,16 @@ def _build_civi_email(d: dict, contractor_name: str) -> tuple[str, str]:
     cv_url = d.get("cv_drive_url", "")
     cv_section = f'<p><a href="{cv_url}" style="color:#1d4ed8;">לחץ לצפייה בקורות החיים</a></p>' if cv_url else ""
 
+    custom_section = ""
+    if custom_message.strip():
+        escaped = custom_message.replace("<", "&lt;").replace(">", "&gt;")
+        custom_section = f'<div dir="rtl" style="background:#f0f4ff;border-right:4px solid #1d4ed8;padding:12px 16px;margin-bottom:20px;border-radius:4px;"><p style="margin:0 0 4px;color:#1e3a8a;font-weight:600;font-size:13px;">הערת הסוכן:</p><p style="margin:0;color:#1e40af;font-size:14px;">{escaped}</p></div>'
+
     subject = f"מועמד חדש: {name} | {job} | ציון {score:.0f}%"
     html = f"""
 <div dir="rtl" style="font-family:Arial,sans-serif;max-width:640px;color:#111;">
   <h2 style="color:#1d4ed8;border-bottom:2px solid #e5e7eb;padding-bottom:8px;">מועמד חדש להגשה</h2>
+  {custom_section}
   <table style="border-collapse:collapse;width:100%;margin-bottom:16px;">
     <tr><td style="padding:4px 12px 4px 0;color:#6b7280;width:120px;">שם</td><td><strong>{name}</strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">מייל</td><td>{email}</td></tr>

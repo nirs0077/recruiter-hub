@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import api from "../../api";
 import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
+import CiviModal from "../../components/CiviModal";
 
 interface Application {
   id: string;
@@ -23,6 +24,8 @@ interface Application {
   created_at?: string;
   cv_drive_url?: string;
   civi_sent_at?: string;
+  civi_email_subject?: string;
+  civi_email_html?: string;
   status_history?: Array<{
     status: string; status_label: string; note: string;
     changed_by: string; changed_by_name: string; timestamp: string;
@@ -87,8 +90,7 @@ export default function CandidateCardPage() {
   const [noteText, setNoteText] = useState<Record<string, string>>({});
   const [targetDate, setTargetDate] = useState<Record<string, string>>({});
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
-  const [sendingCivi, setSendingCivi] = useState<string | null>(null);
-  const [civiError, setCiviError] = useState<Record<string, string>>({});
+  const [civiModal, setCiviModal] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [contractorsWarning, setContractorsWarning] = useState<{ id: string; name: string }[] | null>(null);
@@ -128,17 +130,6 @@ export default function CandidateCardPage() {
       setNoteText(p => { const n = { ...p }; delete n[appId]; return n; });
       setTargetDate(p => { const n = { ...p }; delete n[appId]; return n; });
     } finally { setSavingStatus(null); }
-  };
-
-  const handleSendCivi = async (appId: string) => {
-    setSendingCivi(appId);
-    setCiviError(p => ({ ...p, [appId]: "" }));
-    try {
-      await api.post(`/applications/${appId}/send-to-civi`);
-      await reload();
-    } catch (e: any) {
-      setCiviError(p => ({ ...p, [appId]: e.response?.data?.detail || "שגיאה בשליחה" }));
-    } finally { setSendingCivi(null); }
   };
 
   if (loading) return (
@@ -194,6 +185,16 @@ export default function CandidateCardPage() {
             )}
           </div>
         </div>
+      )}
+
+      {civiModal && (
+        <CiviModal
+          appId={civiModal}
+          candidateName={candidate?.name || ""}
+          jobTitle={candidate?.applications?.find(a => a.id === civiModal)?.job_title || ""}
+          onSent={() => { setCiviModal(null); reload(); }}
+          onClose={() => setCiviModal(null)}
+        />
       )}
 
       <div className="flex items-center justify-between mb-5">
@@ -557,16 +558,33 @@ export default function CandidateCardPage() {
 
                   {/* CIVI send */}
                   {!app.civi_sent_at && (
-                    <div>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleSendCivi(app.id); }}
-                        disabled={sendingCivi === app.id}
-                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg disabled:opacity-60"
-                      >
-                        <Send size={12} />{sendingCivi === app.id ? "שולח..." : "שלח לCIVI"}
-                      </button>
-                      {civiError[app.id] && <p className="text-xs text-red-500 mt-1">{civiError[app.id]}</p>}
-                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setCiviModal(app.id); }}
+                      className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg"
+                    >
+                      <Send size={12} />שלח לCIVI
+                    </button>
+                  )}
+
+                  {/* Sent email viewer */}
+                  {app.civi_sent_at && app.civi_email_html && (
+                    <details className="mt-1">
+                      <summary className="text-xs text-indigo-600 cursor-pointer hover:text-indigo-800 select-none">
+                        צפה במייל שנשלח לCIVI ←
+                      </summary>
+                      <div className="mt-2 border border-indigo-100 rounded-lg overflow-hidden">
+                        <div className="bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700 font-medium border-b border-indigo-100">
+                          נושא: {app.civi_email_subject}
+                        </div>
+                        <iframe
+                          srcDoc={app.civi_email_html}
+                          sandbox="allow-same-origin"
+                          className="w-full"
+                          style={{ height: "400px", border: "none" }}
+                          title="CIVI email"
+                        />
+                      </div>
+                    </details>
                   )}
                 </div>
               )}

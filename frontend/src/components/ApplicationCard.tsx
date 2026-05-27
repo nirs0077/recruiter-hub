@@ -5,6 +5,7 @@ import {
   FileText, Send, AlertCircle, CheckCircle2, Clock, Eye, CalendarDays, X
 } from "lucide-react";
 import api from "../api";
+import CiviModal from "./CiviModal";
 
 export interface Application {
   id: string;
@@ -28,6 +29,8 @@ export interface Application {
   notes?: string;
   cv_drive_url?: string;
   civi_sent_at?: string;
+  civi_email_subject?: string;
+  civi_email_html?: string;
   status_history?: StatusHistoryEntry[];
   created_at?: string;
 }
@@ -106,8 +109,7 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
   const [modalDate, setModalDate] = useState("");
   const [modalNote, setModalNote] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
-  const [sendingCivi, setSendingCivi] = useState(false);
-  const [civiError, setCiviError] = useState("");
+  const [showCiviModal, setShowCiviModal] = useState(false);
 
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
@@ -135,19 +137,6 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
       setShowStatusModal(false);
     } finally {
       setSavingStatus(false);
-    }
-  };
-
-  const handleSendCivi = async () => {
-    setSendingCivi(true);
-    setCiviError("");
-    try {
-      await api.post(`/applications/${app.id}/send-to-civi`);
-      onCiviSent?.(app.id);
-    } catch (e: any) {
-      setCiviError(e.response?.data?.detail || "שגיאה בשליחה");
-    } finally {
-      setSendingCivi(false);
     }
   };
 
@@ -432,16 +421,23 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
                 </button>
               )}
               {canSendCivi && (
-                <div className="flex items-center gap-2">
+                <>
+                  {showCiviModal && (
+                    <CiviModal
+                      appId={app.id}
+                      candidateName={app.candidate_name || ""}
+                      jobTitle={app.job_title || ""}
+                      onSent={() => { setShowCiviModal(false); onCiviSent?.(app.id); }}
+                      onClose={() => setShowCiviModal(false)}
+                    />
+                  )}
                   <button
-                    onClick={e => { e.stopPropagation(); handleSendCivi(); }}
-                    disabled={sendingCivi}
-                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60"
+                    onClick={e => { e.stopPropagation(); setShowCiviModal(true); }}
+                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                   >
-                    <Send size={12} />{sendingCivi ? "שולח..." : "שלח לCIVI"}
+                    <Send size={12} />שלח לCIVI
                   </button>
-                  {civiError && <p className="text-xs text-red-500">{civiError}</p>}
-                </div>
+                </>
               )}
             </div>
           </div>

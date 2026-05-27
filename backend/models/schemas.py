@@ -168,6 +168,8 @@ class ApplicationOut(BaseModel):
     notes: Optional[str] = None
     cv_drive_url: Optional[str] = None
     civi_sent_at: Optional[str] = None
+    civi_email_subject: Optional[str] = None
+    civi_email_html: Optional[str] = None
     status_history: Optional[List[dict]] = []
     created_at: Optional[str] = None
 
@@ -176,6 +178,11 @@ class StatusUpdateRequest(BaseModel):
     status: ApplicationStatus
     note: Optional[str] = None
     target_date: Optional[str] = None
+
+
+class SendToCiviRequest(BaseModel):
+    subject_override: Optional[str] = None
+    custom_message: Optional[str] = None
 
 
 class CheckMatchRequest(BaseModel):
