@@ -35,15 +35,14 @@ export default function ContractorJobDetail() {
     }).finally(() => setLoading(false));
   }, [jobId]);
 
-  const handleStatusChange = (appId: string, status: string) => {
-    setApps(prev => prev.map(a => a.id === appId ? { ...a, status } : a));
+  const refreshApps = () => {
+    api.get(`/applications/job/${jobId}`).then(r => {
+      setApps(r.data.sort((a: Application, b: Application) => (b.score ?? 0) - (a.score ?? 0)));
+    });
   };
 
-  const handleCiviSent = (appId: string) => {
-    setApps(prev => prev.map(a =>
-      a.id === appId ? { ...a, status: "sent_to_civi", civi_sent_at: new Date().toISOString() } : a
-    ));
-  };
+  const handleStatusChange = () => refreshApps();
+  const handleCiviSent = () => refreshApps();
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">

@@ -87,7 +87,7 @@ export default function ApplicationDetail() {
 
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
-  const canSendCivi = app.status === "in_process" && score >= civiThreshold && !app.civi_sent_at;
+  const canSendCivi = score >= civiThreshold && !app.civi_sent_at;
   const systemNotes = (app.status_history || []).filter(h => h.changed_by === "system");
   const latestSystemNote = systemNotes[systemNotes.length - 1];
 

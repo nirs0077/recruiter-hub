@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight, Loader2, Users, GitCompare, ChevronDown, ChevronUp,
-  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send, CalendarDays, Trash2
+  Phone, Mail, Briefcase, Star, FileText, MessageCircle, Eye, Send, CalendarDays, Trash2,
+  Clock, User, AlertCircle
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
@@ -297,6 +298,37 @@ export default function AllCandidates() {
                                           ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"
                                       }`}>{app.recommendation}</span>
                                     )}
+
+                                    {/* Status history */}
+                                    {(app.status_history || []).filter((h: any) => h.changed_by !== "system").length > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">היסטוריית סטטוס</p>
+                                        <div className="space-y-1.5">
+                                          {[...(app.status_history || [])].reverse().filter((h: any) => h.changed_by !== "system").map((h: any, i: number) => (
+                                            <div key={i} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs">
+                                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                                <User size={11} className="text-gray-400 shrink-0" />
+                                                <span className={`font-medium ${STATUS_META[h.status]?.color || "text-gray-600"}`}>
+                                                  {h.status_label || h.status}
+                                                </span>
+                                                <span className="text-gray-400">·</span>
+                                                <span className="text-gray-500">{h.changed_by_name}</span>
+                                                {h.target_date && (
+                                                  <span className="flex items-center gap-1 text-blue-600">
+                                                    <CalendarDays size={10} />יעד: {new Date(h.target_date).toLocaleDateString("he-IL")}
+                                                  </span>
+                                                )}
+                                                <span className="text-gray-400 mr-auto flex items-center gap-0.5">
+                                                  <Clock size={10} />{new Date(h.timestamp).toLocaleDateString("he-IL")}
+                                                </span>
+                                              </div>
+                                              {h.note && <p className="text-gray-600 mr-4">{h.note}</p>}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
                                     <Link
                                       to={`/contractor/applications/${app.id}`}
                                       className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
