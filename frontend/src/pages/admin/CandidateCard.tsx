@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowRight, Briefcase, Star, CheckCircle, XCircle, Loader2,
-  Phone, Mail, MessageCircle, FileText, Clock, AlertCircle, Send, ChevronDown, ChevronUp
+  Phone, Mail, MessageCircle, FileText, Clock, AlertCircle, Send,
+  ChevronDown, ChevronUp, Copy, Check, GraduationCap, Building2, Award
 } from "lucide-react";
 import api from "../../api";
 import { STATUS_META } from "../../components/ApplicationCard";
@@ -34,8 +35,14 @@ interface CandidateDetail {
   name: string;
   email?: string;
   phone?: string;
+  current_title?: string;
+  years_of_experience?: number;
+  education?: string;
   cv_summary?: string;
+  notable_achievement?: string;
   recent_roles?: string[];
+  skills?: string[];
+  companies?: string[];
   has_management_exp?: boolean;
   cv_drive_url?: string;
   applications: Application[];
@@ -48,6 +55,28 @@ function toWhatsApp(phone: string, name: string) {
   return `https://wa.me/${intl}?text=${msg}`;
 }
 
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button onClick={copy} className="text-gray-400 hover:text-white transition-colors p-1 rounded">
+      {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+    </button>
+  );
+}
+
+const SKILL_COLORS = [
+  "bg-blue-900 text-blue-200 border-blue-700",
+  "bg-purple-900 text-purple-200 border-purple-700",
+  "bg-teal-900 text-teal-200 border-teal-700",
+  "bg-indigo-900 text-indigo-200 border-indigo-700",
+  "bg-cyan-900 text-cyan-200 border-cyan-700",
+];
+
 export default function CandidateCardPage() {
   const { candidateId } = useParams();
   const [candidate, setCandidate] = useState<CandidateDetail | null>(null);
@@ -58,6 +87,7 @@ export default function CandidateCardPage() {
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
   const [sendingCivi, setSendingCivi] = useState<string | null>(null);
   const [civiError, setCiviError] = useState<Record<string, string>>({});
+  const [showHistory, setShowHistory] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     api.get(`/candidates/${candidateId}`)
@@ -77,9 +107,7 @@ export default function CandidateCardPage() {
       await reload();
       setPendingStatus(p => { const n = { ...p }; delete n[appId]; return n; });
       setNoteText(p => { const n = { ...p }; delete n[appId]; return n; });
-    } finally {
-      setSavingStatus(null);
-    }
+    } finally { setSavingStatus(null); }
   };
 
   const handleSendCivi = async (appId: string) => {
@@ -90,9 +118,7 @@ export default function CandidateCardPage() {
       await reload();
     } catch (e: any) {
       setCiviError(p => ({ ...p, [appId]: e.response?.data?.detail || "שגיאה בשליחה" }));
-    } finally {
-      setSendingCivi(null);
-    }
+    } finally { setSendingCivi(null); }
   };
 
   if (loading) return (
@@ -103,6 +129,7 @@ export default function CandidateCardPage() {
   if (!candidate) return <p>מועמד לא נמצא</p>;
 
   const bestScore = Math.max(...(candidate.applications?.map(a => a.score) || [0]));
+  const scoreColor = bestScore >= 80 ? "#22c55e" : bestScore >= 60 ? "#eab308" : "#ef4444";
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -110,72 +137,145 @@ export default function CandidateCardPage() {
         <ArrowRight size={16} />חזרה למועמדים
       </Link>
 
-      {/* ── Profile header ── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
-        <div className="flex items-start gap-5">
-          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 font-bold text-2xl">
-            {(candidate.name || "?")[0]}
+      {/* ── HUNTER-AI style profile card ── */}
+      <div className="bg-[#1a1f2e] rounded-2xl overflow-hidden shadow-2xl mb-6 border border-[#2d3548]">
+
+        {/* Header */}
+        <div className="p-6 pb-4">
+          <div className="flex items-start gap-4">
+            {/* Avatar */}
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 text-white font-bold text-2xl shadow-lg">
+              {(candidate.name || "?")[0]}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold text-white mb-0.5">{candidate.name}</h1>
+              {candidate.current_title && (
+                <p className="text-blue-300 text-sm font-medium mb-2">{candidate.current_title}</p>
+              )}
+
+              {/* Metadata tags */}
+              <div className="flex flex-wrap gap-2">
+                {candidate.years_of_experience && (
+                  <span className="flex items-center gap-1 text-xs bg-[#2d3548] text-gray-300 px-2.5 py-1 rounded-full border border-[#3d4860]">
+                    <Clock size={11} className="text-blue-400" />{candidate.years_of_experience} שנות ניסיון
+                  </span>
+                )}
+                {candidate.education && (
+                  <span className="flex items-center gap-1 text-xs bg-[#2d3548] text-gray-300 px-2.5 py-1 rounded-full border border-[#3d4860]">
+                    <GraduationCap size={11} className="text-purple-400" />{candidate.education}
+                  </span>
+                )}
+                {candidate.has_management_exp && (
+                  <span className="flex items-center gap-1 text-xs bg-purple-900 text-purple-300 px-2.5 py-1 rounded-full border border-purple-700">
+                    <Star size={11} />ניהולי
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Score circle */}
+            <div className="text-center shrink-0">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg border-2"
+                style={{ borderColor: scoreColor, color: scoreColor, backgroundColor: `${scoreColor}15` }}>
+                {Math.round(bestScore)}%
+              </div>
+              <p className="text-xs text-gray-500 mt-1">ציון מקס׳</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h1 className="text-2xl font-bold text-gray-900">{candidate.name}</h1>
-              {candidate.has_management_exp && (
-                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">ניסיון ניהולי</span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
-              {candidate.email && (
-                <a href={`mailto:${candidate.email}`} className="flex items-center gap-1.5 hover:text-blue-600">
-                  <Mail size={14} />{candidate.email}
+
+          {/* Contact row */}
+          <div className="flex flex-wrap gap-2 mt-4">
+            {candidate.phone && (
+              <>
+                <div className="flex items-center gap-1 bg-[#2d3548] text-gray-200 text-xs px-3 py-1.5 rounded-lg border border-[#3d4860]">
+                  <Phone size={12} className="text-green-400" />{candidate.phone}
+                  <CopyButton value={candidate.phone} />
+                </div>
+                <a href={toWhatsApp(candidate.phone, candidate.name)}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                  <MessageCircle size={12} />WA
                 </a>
-              )}
-              {candidate.phone && (
-                <a href={`tel:${candidate.phone}`} className="flex items-center gap-1.5 hover:text-blue-600">
-                  <Phone size={14} />{candidate.phone}
-                </a>
-              )}
-            </div>
-            {candidate.cv_summary && (
-              <p className="text-sm text-gray-600 leading-relaxed">{candidate.cv_summary}</p>
+              </>
+            )}
+            {candidate.email && (
+              <div className="flex items-center gap-1 bg-[#2d3548] text-gray-200 text-xs px-3 py-1.5 rounded-lg border border-[#3d4860]">
+                <Mail size={12} className="text-blue-400" />{candidate.email}
+                <CopyButton value={candidate.email} />
+              </div>
+            )}
+            {candidate.cv_drive_url && (
+              <a href={candidate.cv_drive_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-blue-700 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors">
+                <FileText size={12} />קורות חיים
+              </a>
             )}
           </div>
-          <div className="text-center shrink-0">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-lg ${
-              bestScore >= 80 ? "bg-green-100 text-green-700" :
-              bestScore >= 60 ? "bg-yellow-100 text-yellow-700" :
-              "bg-red-100 text-red-600"
-            }`}>{Math.round(bestScore)}%</div>
-            <p className="text-xs text-gray-400 mt-1">ציון מקס׳</p>
-          </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
-          {candidate.phone && (
-            <a href={toWhatsApp(candidate.phone, candidate.name)} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-3 py-2 rounded-lg">
-              <MessageCircle size={14} />שלח WhatsApp
-            </a>
-          )}
-          {candidate.cv_drive_url && (
-            <a href={candidate.cv_drive_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-sm font-medium px-3 py-2 rounded-lg">
-              <FileText size={14} />קורות חיים (Drive)
-            </a>
-          )}
-        </div>
-
+        {/* Matching roles */}
         {candidate.recent_roles && candidate.recent_roles.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <p className="text-sm font-semibold text-gray-700 mb-2">תפקידים אחרונים</p>
+          <div className="px-6 pb-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">תפקידים אחרונים</p>
             <div className="flex flex-wrap gap-2">
-              {candidate.recent_roles.map((role, i) => (
-                <span key={i} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full flex items-center gap-1">
-                  <Briefcase size={11} />{role}
+              {candidate.recent_roles.map((r, i) => (
+                <span key={i} className="flex items-center gap-1 text-xs bg-[#252b3d] text-blue-300 border border-blue-800 px-2.5 py-1 rounded-full">
+                  <Briefcase size={10} />{r}
                 </span>
               ))}
             </div>
           </div>
         )}
+
+        {/* Professional summary */}
+        {candidate.cv_summary && (
+          <div className="mx-6 mb-4 bg-[#252b3d] rounded-xl p-4 border border-[#2d3548]">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">סיכום מקצועי</p>
+            <p className="text-sm text-gray-200 leading-relaxed">{candidate.cv_summary}</p>
+          </div>
+        )}
+
+        {/* Notable achievement */}
+        {candidate.notable_achievement && (
+          <div className="mx-6 mb-4 bg-gradient-to-r from-blue-900/50 to-indigo-900/50 rounded-xl p-4 border border-blue-700/50">
+            <div className="flex items-start gap-2">
+              <Award size={16} className="text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-blue-100">{candidate.notable_achievement}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Companies + Skills */}
+        <div className="px-6 pb-5 space-y-3">
+          {candidate.companies && candidate.companies.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+                <Building2 size={11} />חברות
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {candidate.companies.map((c, i) => (
+                  <span key={i} className="text-xs bg-[#2d3548] text-gray-300 border border-[#3d4860] px-2.5 py-1 rounded-full">
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {candidate.skills && candidate.skills.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">טכנולוגיות וכישורים</p>
+              <div className="flex flex-wrap gap-1.5">
+                {candidate.skills.map((s, i) => (
+                  <span key={i} className={`text-xs border px-2.5 py-1 rounded-full ${SKILL_COLORS[i % SKILL_COLORS.length]}`}>
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Applications ── */}
@@ -188,13 +288,12 @@ export default function CandidateCardPage() {
           const pStatus = pendingStatus[app.id];
           const pNote = noteText[app.id] || "";
           const systemNote = (app.status_history || []).filter(h => h.changed_by === "system").slice(-1)[0];
+          const histOpen = showHistory[app.id];
 
           return (
             <div key={app.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-              <div
-                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50"
-                onClick={() => setExpanded(isExpanded ? null : app.id)}
-              >
+              <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-gray-50"
+                onClick={() => setExpanded(isExpanded ? null : app.id)}>
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
                   app.score >= 80 ? "bg-green-100 text-green-700" :
                   app.score >= 60 ? "bg-yellow-100 text-yellow-700" :
@@ -218,8 +317,7 @@ export default function CandidateCardPage() {
                   </span>
                   {app.recommendation?.includes("כדאי") && !app.recommendation?.includes("לא")
                     ? <CheckCircle size={15} className="text-green-500" />
-                    : <XCircle size={15} className="text-red-400" />
-                  }
+                    : <XCircle size={15} className="text-red-400" />}
                   {isExpanded ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
                 </div>
               </div>
@@ -241,7 +339,7 @@ export default function CandidateCardPage() {
                       </a>
                     )}
                     {app.civi_sent_at && (
-                      <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1.5 rounded-lg">
+                      <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg">
                         <Send size={12} />נשלח לCICI · {new Date(app.civi_sent_at).toLocaleDateString("he-IL")}
                       </span>
                     )}
@@ -291,26 +389,34 @@ export default function CandidateCardPage() {
                   {/* Status history */}
                   {(app.status_history || []).length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">היסטוריית סטטוס</p>
-                      <div className="space-y-1.5">
-                        {[...(app.status_history || [])].reverse().map((h, i) => (
-                          <div key={i} className={`rounded-lg px-3 py-2 text-xs border ${
-                            h.changed_by === "system" ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"
-                          }`}>
-                            <div className="flex items-center gap-2">
-                              <span className={`font-medium ${STATUS_META[h.status]?.color || "text-gray-600"}`}>
-                                {h.status_label || h.status}
-                              </span>
-                              <span className="text-gray-400">·</span>
-                              <span className="text-gray-500">{h.changed_by_name}</span>
-                              <span className="text-gray-400 mr-auto flex items-center gap-1">
-                                <Clock size={10} />{new Date(h.timestamp).toLocaleDateString("he-IL")}
-                              </span>
+                      <button
+                        onClick={() => setShowHistory(h => ({ ...h, [app.id]: !h[app.id] }))}
+                        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 font-medium mb-2"
+                      >
+                        {histOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        היסטוריית סטטוס ({app.status_history!.length})
+                      </button>
+                      {histOpen && (
+                        <div className="space-y-1.5">
+                          {[...(app.status_history || [])].reverse().map((h, i) => (
+                            <div key={i} className={`rounded-lg px-3 py-2 text-xs border ${
+                              h.changed_by === "system" ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"
+                            }`}>
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${STATUS_META[h.status]?.color || "text-gray-600"}`}>
+                                  {h.status_label || h.status}
+                                </span>
+                                <span className="text-gray-400">·</span>
+                                <span className="text-gray-500">{h.changed_by_name}</span>
+                                <span className="text-gray-400 mr-auto flex items-center gap-1">
+                                  <Clock size={10} />{new Date(h.timestamp).toLocaleDateString("he-IL")}
+                                </span>
+                              </div>
+                              {h.note && <p className="text-gray-600 mt-0.5">{h.note}</p>}
                             </div>
-                            {h.note && <p className="text-gray-600 mt-0.5">{h.note}</p>}
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -337,7 +443,7 @@ export default function CandidateCardPage() {
                               className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                             >{savingStatus === app.id ? "..." : "אשר"}</button>
                             <button
-                              onClick={e => { e.stopPropagation(); setPendingStatus(p => { const n = {...p}; delete n[app.id]; return n; }); }}
+                              onClick={e => { e.stopPropagation(); setPendingStatus(p => { const n = { ...p }; delete n[app.id]; return n; }); }}
                               className="text-xs text-gray-500 hover:text-gray-700"
                             >ביטול</button>
                           </>

@@ -47,8 +47,14 @@ def _app_to_out(doc_id: str, d: dict) -> ApplicationOut:
         candidate_name=d.get("candidate_name"),
         candidate_email=d.get("candidate_email"),
         candidate_phone=d.get("candidate_phone"),
+        current_title=d.get("current_title"),
+        years_of_experience=d.get("years_of_experience"),
+        education=d.get("education"),
         cv_summary=d.get("cv_summary"),
+        notable_achievement=d.get("notable_achievement"),
         recent_roles=d.get("recent_roles", []),
+        skills=d.get("skills", []),
+        companies=d.get("companies", []),
         has_management_exp=d.get("has_management_exp"),
         score=d.get("score"),
         status=d.get("status", ApplicationStatus.pending),
@@ -64,6 +70,13 @@ def _app_to_out(doc_id: str, d: dict) -> ApplicationOut:
     )
 
 
+def _extract_folder_id(value: str) -> str:
+    """Extract Drive folder ID from a full URL or return as-is."""
+    import re
+    m = re.search(r"/folders/([a-zA-Z0-9_-]+)", value)
+    return m.group(1) if m else value
+
+
 def _get_app_settings(db) -> dict:
     """Merge Firestore settings on top of env defaults."""
     settings = get_settings()
@@ -76,6 +89,9 @@ def _get_app_settings(db) -> dict:
     doc = db.collection("settings").document("app_settings").get()
     if doc.exists:
         defaults.update({k: v for k, v in doc.to_dict().items() if v is not None})
+    # Always work with the folder ID, not a full URL
+    if defaults["google_drive_folder_id"]:
+        defaults["google_drive_folder_id"] = _extract_folder_id(defaults["google_drive_folder_id"])
     return defaults
 
 
@@ -150,8 +166,14 @@ async def submit_application(
         "candidate_name": candidate_name,
         "candidate_email": candidate_email,
         "candidate_phone": analysis.get("candidate_phone") or "",
+        "current_title": analysis.get("current_title"),
+        "years_of_experience": analysis.get("years_of_experience"),
+        "education": analysis.get("education"),
         "cv_summary": analysis.get("cv_summary") or "",
+        "notable_achievement": analysis.get("notable_achievement"),
         "recent_roles": analysis.get("recent_roles", []),
+        "skills": analysis.get("skills", []),
+        "companies": analysis.get("companies", []),
         "has_management_exp": analysis.get("has_management_exp", False),
         "score": score,
         "status": status,
@@ -181,8 +203,14 @@ def _create_candidate(db, candidate_id: str, analysis: dict, cv_text: str, cv_dr
         "name": analysis.get("candidate_name") or "לא זוהה",
         "email": analysis.get("candidate_email") or "",
         "phone": analysis.get("candidate_phone") or "",
+        "current_title": analysis.get("current_title"),
+        "years_of_experience": analysis.get("years_of_experience"),
+        "education": analysis.get("education"),
         "cv_summary": analysis.get("cv_summary") or "",
+        "notable_achievement": analysis.get("notable_achievement"),
         "recent_roles": analysis.get("recent_roles", []),
+        "skills": analysis.get("skills", []),
+        "companies": analysis.get("companies", []),
         "has_management_exp": analysis.get("has_management_exp", False),
         "cv_text": cv_text[:5000],
         "cv_drive_url": cv_drive_url,

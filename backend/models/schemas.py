@@ -104,8 +104,14 @@ class CandidateOut(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
+    current_title: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    education: Optional[str] = None
     cv_summary: Optional[str] = None
+    notable_achievement: Optional[str] = None
     recent_roles: Optional[List[str]] = []
+    skills: Optional[List[str]] = []
+    companies: Optional[List[str]] = []
     has_management_exp: Optional[bool] = None
     cv_drive_url: Optional[str] = None
     created_at: Optional[str] = None
@@ -128,8 +134,14 @@ class ApplicationOut(BaseModel):
     candidate_name: Optional[str] = None
     candidate_email: Optional[str] = None
     candidate_phone: Optional[str] = None
+    current_title: Optional[str] = None
+    years_of_experience: Optional[int] = None
+    education: Optional[str] = None
     cv_summary: Optional[str] = None
+    notable_achievement: Optional[str] = None
     recent_roles: Optional[List[str]] = []
+    skills: Optional[List[str]] = []
+    companies: Optional[List[str]] = []
     has_management_exp: Optional[bool] = None
     score: Optional[float] = None
     status: ApplicationStatus = ApplicationStatus.pending
