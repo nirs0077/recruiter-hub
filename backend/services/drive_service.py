@@ -41,6 +41,15 @@ def _get_or_create_folder(svc, parent_id: str, name: str) -> str:
     return folder["id"]
 
 
+def _safe_filename(filename: str) -> str:
+    """Remove characters that may cause issues in Drive file names."""
+    import re
+    name = os.path.basename(filename or "cv")
+    # Keep only safe chars
+    safe = re.sub(r'[^\w.\-_ ]', '_', name)
+    return safe or "cv.pdf"
+
+
 def upload_cv_to_drive(
     credentials_path: str,
     root_folder_id: str,
@@ -52,24 +61,32 @@ def upload_cv_to_drive(
     """Upload a CV file under root/contractor_name/ and return a shareable view URL."""
     has_creds = os.environ.get("GOOGLE_DRIVE_CREDENTIALS_JSON") or os.path.exists(credentials_path)
     if not root_folder_id or not has_creds:
+        logger.info("Drive upload skipped — no root_folder_id or credentials")
         return None
     try:
         from googleapiclient.http import MediaIoBaseUpload
         svc = _service(credentials_path)
         contractor_folder_id = _get_or_create_folder(svc, root_folder_id, contractor_name)
-        media = MediaIoBaseUpload(io.BytesIO(file_bytes), mimetype=mime_type, resumable=True)
+        safe_name = _safe_filename(filename)
+        logger.info("Uploading CV '%s' to Drive folder %s", safe_name, contractor_folder_id)
+        media = MediaIoBaseUpload(
+            io.BytesIO(file_bytes),
+            mimetype=mime_type,
+            resumable=False,   # simpler, no chunked upload
+        )
         file = svc.files().create(
-            body={"name": filename, "parents": [contractor_folder_id]},
+            body={"name": safe_name, "parents": [contractor_folder_id]},
             media_body=media,
             fields="id",
         ).execute()
         file_id = file["id"]
-        # Share with anyone who has the link
         svc.permissions().create(
             fileId=file_id,
             body={"type": "anyone", "role": "reader"},
         ).execute()
-        return f"https://drive.google.com/file/d/{file_id}/view"
+        url = f"https://drive.google.com/file/d/{file_id}/view"
+        logger.info("Drive upload success: %s", url)
+        return url
     except Exception:
-        logger.exception("Google Drive upload failed for %s", filename)
+        logger.exception("Google Drive upload failed for '%s'", filename)
         return None
