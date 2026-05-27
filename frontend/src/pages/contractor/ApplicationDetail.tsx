@@ -3,13 +3,11 @@ import { useParams, Link } from "react-router-dom";
 import {
   ArrowRight, User, Phone, Mail, Briefcase, Star,
   FileText, MessageCircle, Send, CheckCircle2, AlertCircle,
-  Clock, Loader2
+  Clock, Loader2, CalendarDays
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
-import { STATUS_META } from "../../components/ApplicationCard";
-
-const REQUIRES_NOTE = new Set(["known_candidate"]);
+import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
 
 function toWhatsApp(phone: string, name: string, jobTitle: string) {
   const d = phone.replace(/\D/g, "");
@@ -31,6 +29,7 @@ export default function ApplicationDetail() {
   const [loading, setLoading] = useState(true);
   const [pendingStatus, setPendingStatus] = useState("");
   const [noteText, setNoteText] = useState("");
+  const [targetDate, setTargetDate] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
   const [sendingCivi, setSendingCivi] = useState(false);
   const [civiError, setCiviError] = useState("");
@@ -47,14 +46,18 @@ export default function ApplicationDetail() {
 
   const handleStatusConfirm = async () => {
     if (!app || !pendingStatus) return;
-    if (REQUIRES_NOTE.has(pendingStatus) && !noteText.trim()) return;
     setSavingStatus(true);
     try {
-      await api.patch(`/applications/${app.id}/status`, { status: pendingStatus, note: noteText.trim() });
+      await api.patch(`/applications/${app.id}/status`, {
+        status: pendingStatus,
+        note: noteText.trim(),
+        target_date: targetDate || null,
+      });
       const updated = await api.get(`/applications/${app.id}`);
       setApp(updated.data);
       setPendingStatus("");
       setNoteText("");
+      setTargetDate("");
     } finally {
       setSavingStatus(false);
     }
@@ -183,7 +186,7 @@ export default function ApplicationDetail() {
           )}
           {app.civi_sent_at && (
             <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-sm font-medium px-4 py-2 rounded-lg">
-              <CheckCircle2 size={15} />נשלח לCICI · {new Date(app.civi_sent_at).toLocaleDateString("he-IL")}
+              <CheckCircle2 size={15} />נשלח לCIVI · {new Date(app.civi_sent_at).toLocaleDateString("he-IL")}
             </span>
           )}
         </div>
@@ -258,67 +261,65 @@ export default function ApplicationDetail() {
       {/* ── CIVI Send ── */}
       {canSendCivi && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 space-y-2">
-          <p className="text-sm font-semibold text-indigo-800">שליחה למערכת CICI</p>
-          <p className="text-xs text-indigo-600">מועמד זה מאושר לשליחה. לחיצה תשלח מייל למערכת CICI ותתעד את השליחה.</p>
+          <p className="text-sm font-semibold text-indigo-800">שליחה למערכת CIVI</p>
+          <p className="text-xs text-indigo-600">מועמד זה מאושר לשליחה. לחיצה תשלח מייל למערכת CIVI ותתעד את השליחה.</p>
           <button
             onClick={handleSendCivi}
             disabled={sendingCivi}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors disabled:opacity-60"
           >
-            <Send size={15} />{sendingCivi ? "שולח..." : "שלח לCICI"}
+            <Send size={15} />{sendingCivi ? "שולח..." : "שלח לCIVI"}
           </button>
           {civiError && <p className="text-sm text-red-600">{civiError}</p>}
         </div>
       )}
 
       {/* ── Status change ── */}
-      {app.status !== "sent_to_civi" && (
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-          <h2 className="font-bold text-gray-900">עדכון סטטוס</h2>
-          <div className="flex gap-2">
-            <select
-              value={pendingStatus || app.status}
-              onChange={e => { setPendingStatus(e.target.value); setNoteText(""); }}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white flex-1"
-            >
-              <option value="pending">ממתין</option>
-              <option value="in_process">בתהליך גיוס</option>
-              <option value="rejected">נדחה</option>
-              <option value="known_candidate">מועמד מוכר לנו כבר</option>
-            </select>
-          </div>
+      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+        <h2 className="font-bold text-gray-900">עדכון סטטוס</h2>
+        <select
+          value={pendingStatus || app.status}
+          onChange={e => { setPendingStatus(e.target.value); setNoteText(""); setTargetDate(""); }}
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+        >
+          {STATUS_GROUPS.map(group => (
+            <optgroup key={group.label} label={group.label}>
+              {group.statuses.map(s => (
+                <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
 
-          {pendingStatus && pendingStatus !== app.status && (
-            <>
-              <textarea
-                value={noteText}
-                onChange={e => setNoteText(e.target.value)}
-                rows={3}
-                placeholder={REQUIRES_NOTE.has(pendingStatus) ? "הערה נדרשת לסטטוס זה *" : "הוסף הערה (אופציונלי)"}
-                className={`w-full text-sm border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                  REQUIRES_NOTE.has(pendingStatus) && !noteText.trim() ? "border-red-300" : "border-gray-200"
-                }`}
-              />
-              {REQUIRES_NOTE.has(pendingStatus) && !noteText.trim() && (
-                <p className="text-xs text-red-500">יש להוסיף הערה עבור סטטוס זה</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={handleStatusConfirm}
-                  disabled={savingStatus || (REQUIRES_NOTE.has(pendingStatus) && !noteText.trim())}
-                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {savingStatus ? "שומר..." : "שמור סטטוס"}
-                </button>
-                <button
-                  onClick={() => setPendingStatus("")}
-                  className="text-sm text-gray-500 hover:text-gray-700 px-3"
-                >ביטול</button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+        {pendingStatus && pendingStatus !== app.status && (
+          <>
+            <input
+              type="date"
+              value={targetDate}
+              onChange={e => setTargetDate(e.target.value)}
+              placeholder="תאריך יעד (אופציונלי)"
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <textarea
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              rows={3}
+              placeholder="הערה — מי נפגש, איך מתקיים המבחן, כל פרט רלוונטי..."
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleStatusConfirm}
+                disabled={savingStatus}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-50"
+              >
+                {savingStatus ? "שומר..." : "שמור סטטוס"}
+              </button>
+              <button onClick={() => setPendingStatus("")} className="text-sm text-gray-500 hover:text-gray-700 px-3">ביטול</button>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* ── Status history ── */}
       {(app.status_history || []).length > 0 && (
@@ -331,7 +332,7 @@ export default function ApplicationDetail() {
                   ? "bg-amber-50 border-amber-200"
                   : "bg-gray-50 border-gray-200"
               }`}>
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   {h.changed_by === "system"
                     ? <AlertCircle size={13} className="text-amber-500 shrink-0" />
                     : <User size={13} className="text-gray-400 shrink-0" />
@@ -341,6 +342,11 @@ export default function ApplicationDetail() {
                   </span>
                   <span className="text-gray-400 text-xs">·</span>
                   <span className="text-gray-500 text-xs">{h.changed_by_name}</span>
+                  {(h as any).target_date && (
+                    <span className="flex items-center gap-1 text-xs text-blue-600">
+                      <CalendarDays size={10} />יעד: {new Date((h as any).target_date).toLocaleDateString("he-IL")}
+                    </span>
+                  )}
                   <span className="text-gray-400 text-xs mr-auto flex items-center gap-1">
                     <Clock size={10} />
                     {new Date(h.timestamp).toLocaleDateString("he-IL")}

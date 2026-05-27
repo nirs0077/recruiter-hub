@@ -28,11 +28,22 @@ router = APIRouter(prefix="/applications", tags=["applications"])
 
 STATUS_LABELS = {
     ApplicationStatus.pending: "ממתין",
-    ApplicationStatus.in_process: "בתהליך גיוס",
+    ApplicationStatus.no_answer: "לא ענה",
+    ApplicationStatus.in_review: "בבדיקה",
+    ApplicationStatus.sent_to_civi: "נשלח אל CIVI",
+    ApplicationStatus.sent_to_meeting: "נשלח לפגישה",
+    ApplicationStatus.first_interview: "תואם ראיון ראשון",
+    ApplicationStatus.second_interview: "תואם ראיון המשך",
+    ApplicationStatus.professional_test: "מבחן מקצועי",
+    ApplicationStatus.integrity_test: "מבחן אמינות",
+    ApplicationStatus.reference_check: "בדיקת ממליצים",
+    ApplicationStatus.contract_offer: "הצעה לחוזה",
+    ApplicationStatus.signed_contract: "חתם/ה על חוזה",
+    ApplicationStatus.started_working: "התחיל/ה לעבוד",
     ApplicationStatus.weak: "מועמד חלש",
     ApplicationStatus.rejected: "נדחה",
+    ApplicationStatus.in_process: "בתהליך גיוס",
     ApplicationStatus.known_candidate: "מועמד מוכר לנו כבר",
-    ApplicationStatus.sent_to_civi: "נשלח למערכת CICI",
 }
 
 
@@ -269,6 +280,7 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         "status": body.status,
         "status_label": STATUS_LABELS.get(body.status, body.status),
         "note": body.note or "",
+        "target_date": body.target_date or None,
         "changed_by": user["uid"],
         "changed_by_name": user.get("name", ""),
         "timestamp": now,
@@ -279,7 +291,7 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         history_entries.append({
             "status": "system",
             "status_label": "הודעת מערכת",
-            "note": "יש להגיש מועמד זה למערכת CICI — לחץ על 'שלח לCICI' לשליחה ישירה",
+            "note": "יש להגיש מועמד זה למערכת CIVI — לחץ על 'שלח לCIVI' לשליחה ישירה",
             "changed_by": "system",
             "changed_by_name": "מערכת",
             "timestamp": now,
@@ -329,9 +341,7 @@ async def send_to_civi(app_id: str, user=Depends(get_current_user)):
     if user["role"] == UserRole.contractor and d.get("contractor_id") != user["uid"]:
         raise HTTPException(status_code=403)
     if d.get("civi_sent_at"):
-        raise HTTPException(status_code=400, detail="מועמד זה כבר נשלח למערכת CICI")
-    if d.get("status") != ApplicationStatus.in_process:
-        raise HTTPException(status_code=400, detail="ניתן לשלוח לCICI רק מועמדים בסטטוס 'בתהליך גיוס'")
+        raise HTTPException(status_code=400, detail="מועמד זה כבר נשלח למערכת CIVI")
 
     score = d.get("score", 0)
     threshold = _get_civi_threshold(db)
@@ -359,8 +369,8 @@ async def send_to_civi(app_id: str, user=Depends(get_current_user)):
         "civi_sent_by": user["uid"],
         "status_history": fs.ArrayUnion([{
             "status": ApplicationStatus.sent_to_civi,
-            "status_label": "נשלח למערכת CICI",
-            "note": f"נשלח למערכת CICI על ידי {contractor_name}",
+            "status_label": "נשלח למערכת CIVI",
+            "note": f"נשלח למערכת CIVI על ידי {contractor_name}",
             "changed_by": user["uid"],
             "changed_by_name": user.get("name", contractor_name),
             "timestamp": now,

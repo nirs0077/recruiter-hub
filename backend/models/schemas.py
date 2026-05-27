@@ -9,12 +9,28 @@ class UserRole(str, Enum):
 
 
 class ApplicationStatus(str, Enum):
+    # בסימון
     pending = "pending"
-    in_process = "in_process"
+    no_answer = "no_answer"
+    in_review = "in_review"
+    sent_to_civi = "sent_to_civi"
+    # בתהליך
+    sent_to_meeting = "sent_to_meeting"
+    first_interview = "first_interview"
+    second_interview = "second_interview"
+    professional_test = "professional_test"
+    integrity_test = "integrity_test"
+    reference_check = "reference_check"
+    contract_offer = "contract_offer"
+    # התקבל
+    signed_contract = "signed_contract"
+    started_working = "started_working"
+    # נדחה
     weak = "weak"
     rejected = "rejected"
+    # Legacy (backward compatibility)
+    in_process = "in_process"
     known_candidate = "known_candidate"
-    sent_to_civi = "sent_to_civi"
 
 
 class JobStatus(str, Enum):
@@ -159,6 +175,7 @@ class ApplicationOut(BaseModel):
 class StatusUpdateRequest(BaseModel):
     status: ApplicationStatus
     note: Optional[str] = None
+    target_date: Optional[str] = None
 
 
 class CheckMatchRequest(BaseModel):

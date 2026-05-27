@@ -7,9 +7,7 @@ import {
   Trash2, X, UserCheck
 } from "lucide-react";
 import api from "../../api";
-import { STATUS_META } from "../../components/ApplicationCard";
-
-const REQUIRES_NOTE = new Set(["known_candidate"]);
+import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
 
 interface Application {
   id: string;
@@ -87,6 +85,7 @@ export default function CandidateCardPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<Record<string, string>>({});
   const [noteText, setNoteText] = useState<Record<string, string>>({});
+  const [targetDate, setTargetDate] = useState<Record<string, string>>({});
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
   const [sendingCivi, setSendingCivi] = useState<string | null>(null);
   const [civiError, setCiviError] = useState<Record<string, string>>({});
@@ -120,13 +119,14 @@ export default function CandidateCardPage() {
   const handleStatusConfirm = async (appId: string) => {
     const status = pendingStatus[appId];
     const note = noteText[appId] || "";
-    if (REQUIRES_NOTE.has(status) && !note.trim()) return;
+    const date = targetDate[appId] || null;
     setSavingStatus(appId);
     try {
-      await api.patch(`/applications/${appId}/status`, { status, note: note.trim() });
+      await api.patch(`/applications/${appId}/status`, { status, note: note.trim(), target_date: date });
       await reload();
       setPendingStatus(p => { const n = { ...p }; delete n[appId]; return n; });
       setNoteText(p => { const n = { ...p }; delete n[appId]; return n; });
+      setTargetDate(p => { const n = { ...p }; delete n[appId]; return n; });
     } finally { setSavingStatus(null); }
   };
 
@@ -417,7 +417,7 @@ export default function CandidateCardPage() {
                     )}
                     {app.civi_sent_at && (
                       <span className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs px-3 py-1.5 rounded-lg">
-                        <Send size={12} />נשלח לCICI · {new Date(app.civi_sent_at).toLocaleDateString("he-IL")}
+                        <Send size={12} />נשלח לCIVI · {new Date(app.civi_sent_at).toLocaleDateString("he-IL")}
                       </span>
                     )}
                   </div>
@@ -479,12 +479,17 @@ export default function CandidateCardPage() {
                             <div key={i} className={`rounded-lg px-3 py-2 text-xs border ${
                               h.changed_by === "system" ? "bg-amber-50 border-amber-200" : "bg-white border-gray-200"
                             }`}>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`font-medium ${STATUS_META[h.status]?.color || "text-gray-600"}`}>
                                   {h.status_label || h.status}
                                 </span>
                                 <span className="text-gray-400">·</span>
                                 <span className="text-gray-500">{h.changed_by_name}</span>
+                                {(h as any).target_date && (
+                                  <span className="flex items-center gap-1 text-blue-600">
+                                    <CalendarDays size={10} />יעד: {new Date((h as any).target_date).toLocaleDateString("he-IL")}
+                                  </span>
+                                )}
                                 <span className="text-gray-400 mr-auto flex items-center gap-1">
                                   <Clock size={10} />{new Date(h.timestamp).toLocaleDateString("he-IL")}
                                 </span>
@@ -498,58 +503,67 @@ export default function CandidateCardPage() {
                   )}
 
                   {/* Status change */}
-                  {app.status !== "sent_to_civi" && (
-                    <div className="border-t border-gray-200 pt-3 space-y-2">
-                      <div className="flex gap-2">
-                        <select
-                          value={pStatus || app.status}
-                          onChange={e => setPendingStatus(p => ({ ...p, [app.id]: e.target.value }))}
-                          onClick={e => e.stopPropagation()}
-                          className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white flex-1"
-                        >
-                          <option value="pending">ממתין</option>
-                          <option value="in_process">בתהליך גיוס</option>
-                          <option value="rejected">נדחה</option>
-                          <option value="known_candidate">מועמד מוכר לנו כבר</option>
-                        </select>
-                        {pStatus && pStatus !== app.status && (
-                          <>
-                            <button
-                              onClick={e => { e.stopPropagation(); handleStatusConfirm(app.id); }}
-                              disabled={savingStatus === app.id || (REQUIRES_NOTE.has(pStatus) && !pNote.trim())}
-                              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                            >{savingStatus === app.id ? "..." : "אשר"}</button>
-                            <button
-                              onClick={e => { e.stopPropagation(); setPendingStatus(p => { const n = { ...p }; delete n[app.id]; return n; }); }}
-                              className="text-xs text-gray-500 hover:text-gray-700"
-                            >ביטול</button>
-                          </>
-                        )}
-                      </div>
+                  <div className="border-t border-gray-200 pt-3 space-y-2">
+                    <div className="flex gap-2">
+                      <select
+                        value={pStatus || app.status}
+                        onChange={e => setPendingStatus(p => ({ ...p, [app.id]: e.target.value }))}
+                        onClick={e => e.stopPropagation()}
+                        className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 bg-white flex-1"
+                      >
+                        {STATUS_GROUPS.map(group => (
+                          <optgroup key={group.label} label={group.label}>
+                            {group.statuses.map(s => (
+                              <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
                       {pStatus && pStatus !== app.status && (
+                        <>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleStatusConfirm(app.id); }}
+                            disabled={savingStatus === app.id}
+                            className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >{savingStatus === app.id ? "..." : "אשר"}</button>
+                          <button
+                            onClick={e => { e.stopPropagation(); setPendingStatus(p => { const n = { ...p }; delete n[app.id]; return n; }); }}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >ביטול</button>
+                        </>
+                      )}
+                    </div>
+                    {pStatus && pStatus !== app.status && (
+                      <>
+                        <input
+                          type="date"
+                          value={targetDate[app.id] || ""}
+                          onChange={e => setTargetDate(p => ({ ...p, [app.id]: e.target.value }))}
+                          onClick={e => e.stopPropagation()}
+                          placeholder="תאריך יעד (אופציונלי)"
+                          className="w-full text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        />
                         <textarea
                           value={pNote}
                           onChange={e => setNoteText(p => ({ ...p, [app.id]: e.target.value }))}
                           onClick={e => e.stopPropagation()}
                           rows={2}
-                          placeholder={REQUIRES_NOTE.has(pStatus) ? "הערה נדרשת *" : "הוסף הערה (אופציונלי)"}
-                          className={`w-full text-xs border rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 ${
-                            REQUIRES_NOTE.has(pStatus) && !pNote.trim() ? "border-red-300" : "border-gray-200"
-                          }`}
+                          placeholder="הערה — מי נפגש, איך מתקיים המבחן, כל פרט רלוונטי..."
+                          className="w-full text-xs border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
                         />
-                      )}
-                    </div>
-                  )}
+                      </>
+                    )}
+                  </div>
 
                   {/* CIVI send */}
-                  {app.status === "in_process" && !app.civi_sent_at && (
+                  {!app.civi_sent_at && (
                     <div>
                       <button
                         onClick={e => { e.stopPropagation(); handleSendCivi(app.id); }}
                         disabled={sendingCivi === app.id}
                         className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-1.5 rounded-lg disabled:opacity-60"
                       >
-                        <Send size={12} />{sendingCivi === app.id ? "שולח..." : "שלח לCICI"}
+                        <Send size={12} />{sendingCivi === app.id ? "שולח..." : "שלח לCIVI"}
                       </button>
                       {civiError[app.id] && <p className="text-xs text-red-500 mt-1">{civiError[app.id]}</p>}
                     </div>

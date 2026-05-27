@@ -73,10 +73,10 @@ export default function AdminSettings() {
         {/* CIVI threshold */}
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <h2 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
-            <Send size={16} className="text-indigo-600" />סף שליחה למערכת CICI
+            <Send size={16} className="text-indigo-600" />סף שליחה למערכת CIVI
           </h2>
           <p className="text-sm text-gray-500 mb-5">
-            רק מועמדים עם ציון גבוה מהסף, שאדמין אישר לתהליך גיוס, ניתן לשלוח לCICI.
+            רק מועמדים עם ציון גבוה מהסף, שאדמין אישר לתהליך גיוס, ניתן לשלוח לCIVI.
           </p>
           <div className="flex items-center gap-4 mb-2">
             <input type="range" min={50} max={100} value={civiThreshold}
