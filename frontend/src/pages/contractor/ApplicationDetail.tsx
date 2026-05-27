@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import api from "../../api";
 import type { Application } from "../../components/ApplicationCard";
-import { STATUS_META, STATUS_GROUPS } from "../../components/ApplicationCard";
+import { STATUS_META } from "../../components/ApplicationCard";
 import CiviModal from "../../components/CiviModal";
 
 function toWhatsApp(phone: string, name: string, jobTitle: string) {
@@ -28,10 +28,6 @@ export default function ApplicationDetail() {
   const [app, setApp] = useState<Application | null>(null);
   const [civiThreshold, setCiviThreshold] = useState(80);
   const [loading, setLoading] = useState(true);
-  const [pendingStatus, setPendingStatus] = useState("");
-  const [noteText, setNoteText] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [savingStatus, setSavingStatus] = useState(false);
   const [showCiviModal, setShowCiviModal] = useState(false);
 
   useEffect(() => {
@@ -44,25 +40,6 @@ export default function ApplicationDetail() {
     }).finally(() => setLoading(false));
   }, [appId]);
 
-  const handleStatusConfirm = async () => {
-    if (!app || !pendingStatus) return;
-    setSavingStatus(true);
-    try {
-      await api.patch(`/applications/${app.id}/status`, {
-        status: pendingStatus,
-        note: noteText.trim(),
-        target_date: targetDate || null,
-      });
-      const updated = await api.get(`/applications/${app.id}`);
-      setApp(updated.data);
-      setPendingStatus("");
-      setNoteText("");
-      setTargetDate("");
-    } finally {
-      setSavingStatus(false);
-    }
-  };
-
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -72,7 +49,7 @@ export default function ApplicationDetail() {
 
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
-  const canSendCivi = score >= civiThreshold && !app.civi_sent_at;
+  const canSendCivi = app.status === "in_process" && score >= civiThreshold && !app.civi_sent_at;
   const systemNotes = (app.status_history || []).filter(h => h.changed_by === "system");
   const latestSystemNote = systemNotes[systemNotes.length - 1];
 
@@ -290,53 +267,6 @@ export default function ApplicationDetail() {
           </div>
         </details>
       )}
-
-      {/* ── Status change ── */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-        <h2 className="font-bold text-gray-900">עדכון סטטוס</h2>
-        <select
-          value={pendingStatus || app.status}
-          onChange={e => { setPendingStatus(e.target.value); setNoteText(""); setTargetDate(""); }}
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
-        >
-          {STATUS_GROUPS.map(group => (
-            <optgroup key={group.label} label={group.label}>
-              {group.statuses.map(s => (
-                <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-
-        {pendingStatus && pendingStatus !== app.status && (
-          <>
-            <input
-              type="date"
-              value={targetDate}
-              onChange={e => setTargetDate(e.target.value)}
-              placeholder="תאריך יעד (אופציונלי)"
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <textarea
-              value={noteText}
-              onChange={e => setNoteText(e.target.value)}
-              rows={3}
-              placeholder="הערה — מי נפגש, איך מתקיים המבחן, כל פרט רלוונטי..."
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleStatusConfirm}
-                disabled={savingStatus}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg disabled:opacity-50"
-              >
-                {savingStatus ? "שומר..." : "שמור סטטוס"}
-              </button>
-              <button onClick={() => setPendingStatus("")} className="text-sm text-gray-500 hover:text-gray-700 px-3">ביטול</button>
-            </div>
-          </>
-        )}
-      </div>
 
       {/* ── Status history ── */}
       {(app.status_history || []).length > 0 && (

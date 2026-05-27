@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from firebase_init import init_firebase
 from config import get_settings
-from routers import auth, jobs, applications, candidates, settings as settings_router
+from routers import auth, jobs, applications, candidates, settings as settings_router, tasks as tasks_router
 
 init_firebase()
 
@@ -22,6 +22,7 @@ app.include_router(jobs.router)
 app.include_router(applications.router)
 app.include_router(candidates.router)
 app.include_router(settings_router.router)
+app.include_router(tasks_router.router)
 
 
 @app.get("/health")

@@ -274,13 +274,13 @@ async def get_application(app_id: str, user=Depends(get_current_user)):
 
 @router.patch("/{app_id}/status")
 async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get_current_user)):
+    if user["role"] == UserRole.contractor:
+        raise HTTPException(status_code=403, detail="עדכון סטטוס מותר לאדמין בלבד")
     db = get_db()
     doc = db.collection("applications").document(app_id).get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Application not found")
     d = doc.to_dict()
-    if user["role"] == UserRole.contractor and d.get("contractor_id") != user["uid"]:
-        raise HTTPException(status_code=403, detail="Forbidden")
 
     now = datetime.utcnow().isoformat()
     history_entries = [{
@@ -308,6 +308,27 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         "status": body.status,
         "status_history": fs.ArrayUnion(history_entries),
     })
+
+    if body.target_date:
+        import uuid as _uuid
+        from models.schemas import TaskStatus, TaskType
+        status_label = STATUS_LABELS.get(body.status, body.status)
+        task_data = {
+            "title": f"{status_label}: {d.get('candidate_name', '')} | {d.get('job_title', '')}",
+            "notes": body.note or "",
+            "due_date": body.target_date,
+            "status": TaskStatus.pending,
+            "type": TaskType.auto,
+            "created_by": user["uid"],
+            "created_by_name": user.get("name", ""),
+            "assigned_to": d.get("contractor_id", ""),
+            "assigned_to_name": d.get("contractor_name", ""),
+            "app_id": app_id,
+            "candidate_name": d.get("candidate_name", ""),
+            "job_title": d.get("job_title", ""),
+            "created_at": now,
+        }
+        db.collection("tasks").document(str(_uuid.uuid4())).set(task_data)
 
     # Email contractor when admin sets in_process
     if body.status == ApplicationStatus.in_process and user["role"] == UserRole.admin:

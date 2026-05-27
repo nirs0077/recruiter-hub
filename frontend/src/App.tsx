@@ -15,6 +15,8 @@ import ContractorJobDetail from "./pages/contractor/JobDetail";
 import AllCandidates from "./pages/contractor/AllCandidates";
 import ApplicationDetail from "./pages/contractor/ApplicationDetail";
 import CrossMatch from "./pages/contractor/CrossMatch";
+import ContractorTasks from "./pages/contractor/Tasks";
+import AdminTasks from "./pages/admin/Tasks";
 import Apply from "./pages/public/Apply";
 import Register from "./pages/public/Register";
 import Impersonate from "./pages/Impersonate";
@@ -44,6 +46,7 @@ function AppRoutes() {
       <Route path="/admin/candidates" element={<ProtectedRoute role="admin"><Layout><Candidates /></Layout></ProtectedRoute>} />
       <Route path="/admin/candidates/:candidateId" element={<ProtectedRoute role="admin"><Layout><CandidateCardPage /></Layout></ProtectedRoute>} />
       <Route path="/admin/settings" element={<ProtectedRoute role="admin"><Layout><AdminSettings /></Layout></ProtectedRoute>} />
+      <Route path="/admin/tasks" element={<ProtectedRoute role="admin"><Layout><AdminTasks /></Layout></ProtectedRoute>} />
 
       {/* Contractor */}
       <Route path="/contractor" element={<ProtectedRoute role="contractor"><Layout><ContractorDashboard /></Layout></ProtectedRoute>} />
@@ -51,6 +54,7 @@ function AppRoutes() {
       <Route path="/contractor/candidates" element={<ProtectedRoute role="contractor"><Layout><AllCandidates /></Layout></ProtectedRoute>} />
       <Route path="/contractor/applications/:appId" element={<ProtectedRoute role="contractor"><Layout><ApplicationDetail /></Layout></ProtectedRoute>} />
       <Route path="/contractor/cross-match" element={<ProtectedRoute role="contractor"><Layout><CrossMatch /></Layout></ProtectedRoute>} />
+      <Route path="/contractor/tasks" element={<ProtectedRoute role="contractor"><Layout><ContractorTasks /></Layout></ProtectedRoute>} />
 
       {/* Default */}
       <Route path="/" element={

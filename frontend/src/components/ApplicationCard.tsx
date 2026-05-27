@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ChevronDown, ChevronUp, Star, Phone, Mail, MessageCircle,
-  FileText, Send, AlertCircle, CheckCircle2, Clock, Eye, CalendarDays, X
+  FileText, Send, AlertCircle, CheckCircle2, Clock, Eye, CalendarDays
 } from "lucide-react";
 import api from "../api";
 import CiviModal from "./CiviModal";
@@ -49,7 +49,6 @@ interface Props {
   app: Application;
   civiThreshold?: number;
   showJobLink?: boolean;
-  onStatusChange?: (appId: string, status: string, note: string) => void;
   onCiviSent?: (appId: string) => void;
 }
 
@@ -102,123 +101,27 @@ function ScoreBadge({ score, size = "md" }: { score: number; size?: "sm" | "md" 
   );
 }
 
-export default function ApplicationCard({ app, civiThreshold = 80, showJobLink = false, onStatusChange, onCiviSent }: Props) {
+export default function ApplicationCard({ app, civiThreshold = 80, showJobLink = false, onCiviSent }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [modalStatus, setModalStatus] = useState(app.status);
-  const [modalDate, setModalDate] = useState("");
-  const [modalNote, setModalNote] = useState("");
-  const [savingStatus, setSavingStatus] = useState(false);
   const [showCiviModal, setShowCiviModal] = useState(false);
 
   const score = app.score ?? 0;
   const meta = STATUS_META[app.status] ?? { label: app.status, color: "text-gray-600", bg: "bg-gray-50 border-gray-200" };
-  const canSendCivi = score >= civiThreshold && !app.civi_sent_at;
-  const systemNotes = (app.status_history || []).filter(h => h.changed_by === "system");
-  const latestSystemNote = systemNotes[systemNotes.length - 1];
 
-  const openStatusModal = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setModalStatus(app.status);
-    setModalDate("");
-    setModalNote("");
-    setShowStatusModal(true);
-  };
-
-  const confirmStatusChange = async () => {
-    setSavingStatus(true);
-    try {
-      await api.patch(`/applications/${app.id}/status`, {
-        status: modalStatus,
-        note: modalNote.trim(),
-        target_date: modalDate || null,
-      });
-      onStatusChange?.(app.id, modalStatus, modalNote);
-      setShowStatusModal(false);
-    } finally {
-      setSavingStatus(false);
-    }
-  };
+  // CIVI available only when admin set "in_process" + score threshold + not already sent
+  const canSendCivi = app.status === "in_process" && score >= civiThreshold && !app.civi_sent_at;
+  const adminApproved = app.status === "in_process" && !app.civi_sent_at;
 
   return (
     <>
-      {/* Status change modal */}
-      {showStatusModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowStatusModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-900">שינוי סטטוס</h3>
-              <button onClick={() => setShowStatusModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">{app.candidate_name} · {app.job_title}</p>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">סטטוס</label>
-                <select
-                  value={modalStatus}
-                  onChange={e => setModalStatus(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
-                >
-                  {STATUS_GROUPS.map(group => (
-                    <optgroup key={group.label} label={group.label}>
-                      {group.statuses.map(s => (
-                        <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">
-                  <CalendarDays size={11} className="inline ml-1" />תאריך יעד (אופציונלי)
-                </label>
-                <input
-                  type="date"
-                  value={modalDate}
-                  onChange={e => setModalDate(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">הערה</label>
-                <textarea
-                  value={modalNote}
-                  onChange={e => setModalNote(e.target.value)}
-                  rows={3}
-                  placeholder="מי נפגש עם המועמד, איך מתקיים המבחן, כל הערה רלוונטית..."
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={() => setShowStatusModal(false)}
-                className="flex-1 text-sm border border-gray-200 rounded-lg py-2 text-gray-600 hover:bg-gray-50"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={confirmStatusChange}
-                disabled={savingStatus}
-                className="flex-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium disabled:opacity-50"
-              >
-                {savingStatus ? "שומר..." : "אשר שינוי"}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showCiviModal && (
+        <CiviModal
+          appId={app.id}
+          candidateName={app.candidate_name || ""}
+          jobTitle={app.job_title || ""}
+          onSent={() => { setShowCiviModal(false); onCiviSent?.(app.id); }}
+          onClose={() => setShowCiviModal(false)}
+        />
       )}
 
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -264,11 +167,25 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
           </div>
         </div>
 
-        {/* ── System note banner ── */}
-        {latestSystemNote && app.status === "in_process" && !app.civi_sent_at && (
-          <div className="mx-4 mb-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-sm text-amber-800">
-            <AlertCircle size={15} className="mt-0.5 shrink-0 text-amber-500" />
-            <span>{latestSystemNote.note}</span>
+        {/* ── Banner: admin approved for CIVI ── */}
+        {adminApproved && canSendCivi && (
+          <div className="mx-4 mb-2 flex items-center justify-between gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-sm text-green-800">
+            <span className="flex items-center gap-2">
+              <AlertCircle size={15} className="text-green-600 shrink-0" />
+              האדמין אישר מועמד זה לתהליך גיוס — ניתן לשלוח לCIVI
+            </span>
+            <button
+              onClick={e => { e.stopPropagation(); setShowCiviModal(true); }}
+              className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors shrink-0"
+            >
+              <Send size={12} />שלח לCIVI
+            </button>
+          </div>
+        )}
+        {adminApproved && !canSendCivi && (
+          <div className="mx-4 mb-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+            <AlertCircle size={13} className="mt-0.5 shrink-0 text-amber-500" />
+            האדמין אישר מועמד זה לתהליך גיוס — ציון נדרש לשליחת CIVI: {civiThreshold}% (ציון נוכחי: {Math.round(score)}%)
           </div>
         )}
 
@@ -338,7 +255,7 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
               </div>
             )}
 
-            {(app.strengths?.length || app.gaps?.length) && (
+            {(app.strengths?.length || app.gaps?.length) ? (
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs font-semibold text-green-700 mb-1.5">✓ חוזקות</p>
@@ -361,7 +278,7 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
                   </ul>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {app.recommendation && (
               <span className={`inline-block text-xs font-medium px-3 py-1 rounded-full ${
@@ -380,7 +297,7 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
               </div>
             )}
 
-            {/* Status history */}
+            {/* Status history (admin notes visible to contractor) */}
             {(app.status_history || []).filter(h => h.changed_by !== "system").length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">היסטוריית סטטוס</p>
@@ -409,37 +326,6 @@ export default function ApplicationCard({ app, civiThreshold = 80, showJobLink =
                 </div>
               </div>
             )}
-
-            {/* Status + CIVI actions */}
-            <div className="border-t border-gray-200 pt-3 flex flex-wrap gap-2">
-              {onStatusChange && (
-                <button
-                  onClick={openStatusModal}
-                  className="flex items-center gap-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg font-medium transition-colors"
-                >
-                  שנה סטטוס
-                </button>
-              )}
-              {canSendCivi && (
-                <>
-                  {showCiviModal && (
-                    <CiviModal
-                      appId={app.id}
-                      candidateName={app.candidate_name || ""}
-                      jobTitle={app.job_title || ""}
-                      onSent={() => { setShowCiviModal(false); onCiviSent?.(app.id); }}
-                      onClose={() => setShowCiviModal(false)}
-                    />
-                  )}
-                  <button
-                    onClick={e => { e.stopPropagation(); setShowCiviModal(true); }}
-                    className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <Send size={12} />שלח לCIVI
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         )}
       </div>

@@ -41,7 +41,6 @@ export default function ContractorJobDetail() {
     });
   };
 
-  const handleStatusChange = () => refreshApps();
   const handleCiviSent = () => refreshApps();
 
   if (loading) return (
@@ -143,7 +142,6 @@ export default function ContractorJobDetail() {
               key={app.id}
               app={app}
               civiThreshold={civiThreshold}
-              onStatusChange={handleStatusChange}
               onCiviSent={handleCiviSent}
             />
           ))

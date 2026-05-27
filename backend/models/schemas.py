@@ -195,6 +195,48 @@ class SubmitExistingRequest(BaseModel):
     job_id: str
 
 
+# ── Tasks ─────────────────────────────────────────────────────────────────────
+
+class TaskStatus(str, Enum):
+    pending = "pending"
+    in_progress = "in_progress"
+    done = "done"
+    cancelled = "cancelled"
+
+
+class TaskType(str, Enum):
+    manual = "manual"
+    auto = "auto"
+
+
+class TaskOut(BaseModel):
+    id: str
+    title: str
+    notes: Optional[str] = None
+    due_date: Optional[str] = None
+    status: TaskStatus = TaskStatus.pending
+    type: TaskType = TaskType.manual
+    created_by: str
+    created_by_name: Optional[str] = None
+    assigned_to: Optional[str] = None
+    assigned_to_name: Optional[str] = None
+    app_id: Optional[str] = None
+    candidate_name: Optional[str] = None
+    job_title: Optional[str] = None
+    created_at: str
+
+
+class CreateTaskRequest(BaseModel):
+    title: str
+    notes: Optional[str] = None
+    due_date: Optional[str] = None
+    assigned_to: Optional[str] = None
+
+
+class UpdateTaskStatusRequest(BaseModel):
+    status: TaskStatus
+
+
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 class SettingsUpdate(BaseModel):
