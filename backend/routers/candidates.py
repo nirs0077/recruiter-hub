@@ -122,7 +122,9 @@ async def get_candidate(candidate_id: str, user=Depends(get_current_user)):
             "recommendation": a.get("recommendation"),
             "contractor_name": a.get("contractor_name"),
             "created_at": a.get("created_at"),
-            "cv_url": a.get("cv_url"),
+            "cv_drive_url": a.get("cv_drive_url"),
+            "civi_sent_at": a.get("civi_sent_at"),
+            "status_history": a.get("status_history", []),
         })
 
     return CandidateDetail(
@@ -133,6 +135,7 @@ async def get_candidate(candidate_id: str, user=Depends(get_current_user)):
         cv_summary=data.get("cv_summary"),
         recent_roles=data.get("recent_roles", []),
         has_management_exp=data.get("has_management_exp"),
+        cv_drive_url=data.get("cv_drive_url"),
         created_at=data.get("created_at"),
         applications=applications,
     )

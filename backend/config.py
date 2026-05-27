@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
 
+    # Google Drive (optional — leave folder_id empty to disable)
+    google_drive_credentials_path: str = "google-drive-credentials.json"
+    google_drive_folder_id: str = ""
+
+    # CIVI recruitment system
+    civi_email: str = "talents@connectech.co.il"
+    civi_send_threshold: float = 80.0
+
     class Config:
         env_file = ".env"
 

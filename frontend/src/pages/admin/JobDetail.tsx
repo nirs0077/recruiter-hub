@@ -33,6 +33,8 @@ const statusLabel: Record<string, { label: string; color: string }> = {
   in_process: { label: "בתהליך גיוס", color: "bg-green-100 text-green-700" },
   weak: { label: "מועמד חלש", color: "bg-gray-100 text-gray-500" },
   rejected: { label: "נדחה", color: "bg-red-100 text-red-600" },
+  known_candidate: { label: "מועמד מוכר", color: "bg-purple-100 text-purple-700" },
+  sent_to_civi: { label: "נשלח לCICI", color: "bg-indigo-100 text-indigo-700" },
 };
 
 export default function AdminJobDetail() {
@@ -59,7 +61,7 @@ export default function AdminJobDetail() {
   };
 
   const updateStatus = async (appId: string, status: string) => {
-    await api.patch(`/applications/${appId}/status?status=${status}`);
+    await api.patch(`/applications/${appId}/status`, { status, note: "" });
     fetchData();
   };
 
@@ -171,6 +173,8 @@ export default function AdminJobDetail() {
                   <option value="in_process">בתהליך גיוס</option>
                   <option value="weak">מועמד חלש</option>
                   <option value="rejected">נדחה</option>
+                  <option value="known_candidate">מועמד מוכר</option>
+                  <option value="sent_to_civi">נשלח לCICI</option>
                 </select>
                 {expanded === app.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
               </div>

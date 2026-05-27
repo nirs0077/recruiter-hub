@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from enum import Enum
-from datetime import datetime
 
 
 class UserRole(str, Enum):
@@ -14,6 +13,8 @@ class ApplicationStatus(str, Enum):
     in_process = "in_process"
     weak = "weak"
     rejected = "rejected"
+    known_candidate = "known_candidate"
+    sent_to_civi = "sent_to_civi"
 
 
 class JobStatus(str, Enum):
@@ -106,6 +107,7 @@ class CandidateOut(BaseModel):
     cv_summary: Optional[str] = None
     recent_roles: Optional[List[str]] = []
     has_management_exp: Optional[bool] = None
+    cv_drive_url: Optional[str] = None
     created_at: Optional[str] = None
     contractors: Optional[List[dict]] = []
 
@@ -124,6 +126,11 @@ class ApplicationOut(BaseModel):
     contractor_name: Optional[str] = None
     candidate_id: str
     candidate_name: Optional[str] = None
+    candidate_email: Optional[str] = None
+    candidate_phone: Optional[str] = None
+    cv_summary: Optional[str] = None
+    recent_roles: Optional[List[str]] = []
+    has_management_exp: Optional[bool] = None
     score: Optional[float] = None
     status: ApplicationStatus = ApplicationStatus.pending
     fit_summary: Optional[str] = None
@@ -131,10 +138,30 @@ class ApplicationOut(BaseModel):
     gaps: Optional[List[str]] = []
     recommendation: Optional[str] = None
     notes: Optional[str] = None
+    cv_drive_url: Optional[str] = None
+    civi_sent_at: Optional[str] = None
+    status_history: Optional[List[dict]] = []
     created_at: Optional[str] = None
+
+
+class StatusUpdateRequest(BaseModel):
+    status: ApplicationStatus
+    note: Optional[str] = None
+
+
+class CheckMatchRequest(BaseModel):
+    candidate_id: str
+    job_id: str
+
+
+class SubmitExistingRequest(BaseModel):
+    candidate_id: str
+    job_id: str
 
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 class SettingsUpdate(BaseModel):
     score_threshold: Optional[float] = None
+    civi_send_threshold: Optional[float] = None
+    google_drive_folder_id: Optional[str] = None
