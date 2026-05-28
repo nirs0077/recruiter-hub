@@ -553,12 +553,9 @@ def _send_civi_email(
             server.starttls()
             server.login(settings.smtp_user, settings.smtp_password)
             server.sendmail(settings.smtp_user, settings.civi_email, msg.as_string())
-    except smtplib.SMTPException as exc:
-        logger.exception("CIVI SMTP error")
-        raise HTTPException(status_code=500, detail=f"שגיאת SMTP: {exc}")
-    except Exception:
+    except Exception as exc:
         logger.exception("CIVI email send failed")
-        raise HTTPException(status_code=500, detail="שגיאה בשליחת המייל לCIVI — הנתונים נשמרו")
+        raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}")
 
 
 # ── Cross-match ───────────────────────────────────────────────────────────────
