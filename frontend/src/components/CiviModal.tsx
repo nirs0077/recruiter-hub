@@ -39,9 +39,12 @@ export default function CiviModal({ appId, candidateName, jobTitle, onSent, onCl
       if (subject.trim()) fd.append("subject_override", subject.trim());
       if (message.trim()) fd.append("custom_message", message.trim());
       if (attachment) fd.append("attachment", attachment, attachment.name);
-      await api.post(`/applications/${appId}/send-to-civi`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const r = await api.post(`/applications/${appId}/send-to-civi`, fd);
+      if (r.data.email_error) {
+        setError(`המועמד סומן כנשלח, אך שליחת המייל נכשלה: ${r.data.email_error}`);
+        setSending(false);
+        return;
+      }
       onSent();
     } catch (e: any) {
       setError(e.response?.data?.detail || "שגיאה בשליחה");

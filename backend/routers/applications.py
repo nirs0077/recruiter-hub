@@ -444,9 +444,7 @@ async def send_to_civi(
         attachment_bytes = await attachment.read()
         attachment_name = attachment.filename
 
-    _send_civi_email(settings, contractor_email, contractor_name, subject, html,
-                     attachment_bytes, attachment_name)
-
+    # Update DB first — so the send is always recorded regardless of SMTP outcome
     now = datetime.utcnow().isoformat()
     db.collection("applications").document(app_id).update({
         "status": ApplicationStatus.sent_to_civi,
@@ -464,7 +462,16 @@ async def send_to_civi(
         }]),
     })
 
-    return {"ok": True, "sent_at": now}
+    # Send email — best effort (DB already updated above)
+    email_error = None
+    try:
+        _send_civi_email(settings, contractor_email, contractor_name, subject, html,
+                         attachment_bytes, attachment_name)
+    except HTTPException as exc:
+        email_error = exc.detail
+        logger.warning("CIVI email failed after DB update: %s", exc.detail)
+
+    return {"ok": True, "sent_at": now, "email_error": email_error}
 
 
 def _build_civi_email(d: dict, contractor_name: str, custom_message: str = "") -> tuple[str, str]:
@@ -534,11 +541,12 @@ def _send_civi_email(
         if attachment_bytes and attachment_name:
             from email.mime.base import MIMEBase
             from email import encoders as _enc
+            from email.utils import encode_rfc2231
             part = MIMEBase("application", "octet-stream")
             part.set_payload(attachment_bytes)
             _enc.encode_base64(part)
-            safe_name = attachment_name.encode("ascii", "ignore").decode() or "attachment"
-            part.add_header("Content-Disposition", f'attachment; filename="{safe_name}"')
+            encoded_name = encode_rfc2231(attachment_name, charset="utf-8")
+            part.add_header("Content-Disposition", "attachment", filename=encoded_name)
             msg.attach(part)
 
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
