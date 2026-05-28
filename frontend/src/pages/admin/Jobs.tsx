@@ -32,6 +32,7 @@ interface Contractor {
 export default function AdminJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [addingUrl, setAddingUrl] = useState("");
   const [adding, setAdding] = useState(false);
@@ -48,12 +49,14 @@ export default function AdminJobs() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [jobsRes, contractorsRes] = await Promise.all([
+    const [jobsRes, contractorsRes, countsRes] = await Promise.all([
       api.get("/jobs"),
       api.get("/auth/users"),
+      api.get("/jobs/counts").catch(() => ({ data: {} })),
     ]);
     setJobs(jobsRes.data);
     setContractors(contractorsRes.data.filter((u: any) => u.role === "contractor"));
+    setCounts(countsRes.data);
     setLoading(false);
   };
 
@@ -179,6 +182,10 @@ export default function AdminJobs() {
                       {job.assigned_contractors.map(getContractorName).join(", ")}
                     </span>
                   )}
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Users size={13} />
+                    {counts[job.id] ?? 0} מועמדים
+                  </span>
                 </div>
               </div>
 

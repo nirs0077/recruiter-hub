@@ -74,6 +74,18 @@ async def list_jobs(user=Depends(get_current_user)):
         return [_job_doc_to_out(d.id, d.to_dict()) for d in docs]
 
 
+@router.get("/counts")
+async def job_application_counts(admin=Depends(require_admin)):
+    """Return {job_id: candidate_count} for all jobs."""
+    db = get_db()
+    counts: dict[str, int] = {}
+    for app_doc in db.collection("applications").stream():
+        job_id = app_doc.to_dict().get("job_id", "")
+        if job_id:
+            counts[job_id] = counts.get(job_id, 0) + 1
+    return counts
+
+
 @router.get("/{job_id}", response_model=JobOut)
 async def get_job(job_id: str, user=Depends(get_current_user)):
     db = get_db()
