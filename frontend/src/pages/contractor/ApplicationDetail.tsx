@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, User, Phone, Mail, Briefcase, Star,
   FileText, MessageCircle, Send, CheckCircle2, AlertCircle,
@@ -25,10 +25,11 @@ function toMailto(email: string, name: string, jobTitle: string) {
 
 export default function ApplicationDetail() {
   const { appId } = useParams();
+  const [searchParams] = useSearchParams();
   const [app, setApp] = useState<Application | null>(null);
   const [civiThreshold, setCiviThreshold] = useState(80);
   const [loading, setLoading] = useState(true);
-  const [showCiviModal, setShowCiviModal] = useState(false);
+  const [showCiviModal, setShowCiviModal] = useState(searchParams.get("civi") === "1");
 
   useEffect(() => {
     Promise.all([

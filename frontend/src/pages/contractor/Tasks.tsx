@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   CheckCircle2, Circle, Clock, XCircle, Plus, Loader2,
-  CalendarDays, Trash2, ChevronRight, Briefcase, User
+  CalendarDays, Trash2, ChevronRight, Briefcase, User, Send
 } from "lucide-react";
 import api from "../../api";
 
@@ -172,9 +173,19 @@ function TaskCard({ task, onStatusChange, onDelete, canDelete }: TaskCardProps) 
           </div>
 
           {task.candidate_name && (
-            <p className="text-xs text-indigo-700 mt-1.5 flex items-center gap-1">
-              <ChevronRight size={11} />{task.candidate_name} | {task.job_title}
-            </p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <p className="text-xs text-indigo-700 flex items-center gap-1">
+                <ChevronRight size={11} />{task.candidate_name} | {task.job_title}
+              </p>
+              {task.app_id && task.type === "auto" && task.status !== "done" && task.status !== "cancelled" && (
+                <Link
+                  to={`/contractor/applications/${task.app_id}?civi=1`}
+                  className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg font-medium transition-colors"
+                >
+                  <Send size={11} />שלח לCIVI
+                </Link>
+              )}
+            </div>
           )}
         </div>
 

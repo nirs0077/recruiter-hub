@@ -330,6 +330,28 @@ async def update_status(app_id: str, body: StatusUpdateRequest, user=Depends(get
         }
         db.collection("tasks").document(str(_uuid.uuid4())).set(task_data)
 
+    # Auto-task for contractor when admin requests CIVI send
+    if body.status == ApplicationStatus.civi_requested and user["role"] == UserRole.admin:
+        import uuid as _uuid
+        from datetime import timedelta
+        from models.schemas import TaskStatus, TaskType
+        tomorrow = (datetime.utcnow() + timedelta(days=1)).strftime("%Y-%m-%d")
+        db.collection("tasks").document(str(_uuid.uuid4())).set({
+            "title": f"שלח מועמד {d.get('candidate_name', '')} אל CIVI — {d.get('job_title', '')}",
+            "notes": body.note or "",
+            "due_date": tomorrow,
+            "status": TaskStatus.pending,
+            "type": TaskType.auto,
+            "created_by": user["uid"],
+            "created_by_name": user.get("name", ""),
+            "assigned_to": d.get("contractor_id", ""),
+            "assigned_to_name": d.get("contractor_name", ""),
+            "app_id": app_id,
+            "candidate_name": d.get("candidate_name", ""),
+            "job_title": d.get("job_title", ""),
+            "created_at": now,
+        })
+
     # Email contractor when admin requests CIVI send
     if body.status == ApplicationStatus.civi_requested and user["role"] == UserRole.admin:
         import asyncio
