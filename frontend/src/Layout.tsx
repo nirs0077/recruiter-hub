@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import { Briefcase, Users, Settings, LogOut, LayoutDashboard, UserCheck, ListChecks } from "lucide-react";
+import { Briefcase, Users, Settings, LogOut, LayoutDashboard, UserCheck, ListChecks, BookOpen } from "lucide-react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
@@ -21,12 +21,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { to: "/admin/candidates", label: "מועמדים", icon: UserCheck },
     { to: "/admin/tasks", label: "משימות", icon: ListChecks },
     { to: "/admin/settings", label: "הגדרות", icon: Settings },
+    { to: "/admin/guide", label: "מדריך", icon: BookOpen },
   ];
 
   const contractorLinks = [
     { to: "/contractor", label: "המשרות שלי", icon: Briefcase },
     { to: "/contractor/candidates", label: "המועמדים שלי", icon: UserCheck },
     { to: "/contractor/tasks", label: "משימות", icon: ListChecks },
+    { to: "/contractor/guide", label: "מדריך", icon: BookOpen },
   ];
 
   const links = isAdmin ? adminLinks : contractorLinks;
