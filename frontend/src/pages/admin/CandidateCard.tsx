@@ -568,23 +568,24 @@ export default function CandidateCardPage() {
 
                   {/* Sent email viewer */}
                   {app.civi_sent_at && app.civi_email_html && (
-                    <details className="mt-1">
-                      <summary className="text-xs text-indigo-600 cursor-pointer hover:text-indigo-800 select-none">
-                        צפה במייל שנשלח לCIVI ←
-                      </summary>
-                      <div className="mt-2 border border-indigo-100 rounded-lg overflow-hidden">
-                        <div className="bg-indigo-50 px-3 py-1.5 text-xs text-indigo-700 font-medium border-b border-indigo-100">
-                          נושא: {app.civi_email_subject}
-                        </div>
-                        <iframe
-                          srcDoc={app.civi_email_html}
-                          sandbox="allow-same-origin"
-                          className="w-full"
-                          style={{ height: "400px", border: "none" }}
-                          title="CIVI email"
-                        />
+                    <div className="mt-2 border border-indigo-200 rounded-xl overflow-hidden">
+                      <div className="bg-indigo-50 px-3 py-2.5 flex items-center gap-2 border-b border-indigo-100">
+                        <Send size={13} className="text-indigo-500 shrink-0" />
+                        <span className="text-xs font-semibold text-indigo-800">מייל שנשלח לCIVI</span>
+                        <span className="text-xs text-indigo-400 mr-auto">{new Date(app.civi_sent_at).toLocaleString("he-IL")}</span>
                       </div>
-                    </details>
+                      <div className="px-3 py-1.5 bg-indigo-50/40 border-b border-indigo-100 text-xs">
+                        <span className="text-indigo-500 font-medium">נושא: </span>
+                        <span className="text-indigo-800">{app.civi_email_subject}</span>
+                      </div>
+                      <iframe
+                        srcDoc={app.civi_email_html}
+                        sandbox="allow-same-origin"
+                        className="w-full"
+                        style={{ height: "380px", border: "none" }}
+                        title="CIVI email"
+                      />
+                    </div>
                   )}
                 </div>
               )}
