@@ -1,7 +1,8 @@
+import type { LucideIcon } from "lucide-react";
 import { Briefcase, Users, UserCheck, Settings, Send, ListChecks, Star, ArrowLeft, CheckCircle2, AlertCircle, LayoutDashboard } from "lucide-react";
 
 interface Section {
-  icon: typeof Briefcase;
+  icon: LucideIcon;
   title: string;
   color: string;
   bg: string;
@@ -107,13 +108,11 @@ const sections: Section[] = [
 export default function AdminGuide() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
       <div className="bg-gradient-to-l from-indigo-600 to-purple-700 rounded-2xl p-6 text-white">
         <h1 className="text-2xl font-bold mb-1">מדריך למשתמש — מנהל</h1>
         <p className="text-indigo-100 text-sm">כל מה שצריך לדעת לניהול מלא של מערכת RecruiterHub</p>
       </div>
 
-      {/* Flow summary */}
       <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
         <h2 className="font-bold text-gray-900 mb-4">תהליך הגיוס בקצרה</h2>
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -134,7 +133,6 @@ export default function AdminGuide() {
         </div>
       </div>
 
-      {/* Sections */}
       {sections.map((section) => (
         <div key={section.title} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className={`px-5 py-3.5 flex items-center gap-3 border-b border-gray-100 ${section.bg}`}>
@@ -157,7 +155,6 @@ export default function AdminGuide() {
         </div>
       ))}
 
-      {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-2">
         <div className="flex items-center gap-2 font-bold text-blue-800">
           <AlertCircle size={16} />
