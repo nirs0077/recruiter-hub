@@ -1,8 +1,5 @@
-import smtplib
 import asyncio
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -10,20 +7,14 @@ logger = logging.getLogger(__name__)
 
 def _send_sync(to: str, subject: str, html: str):
     s = get_settings()
-    if not s.smtp_user or not s.smtp_password:
-        logger.warning("SMTP not configured — skipping email to %s", to)
+    if not s.resend_api_key:
+        logger.warning("Resend not configured — skipping email to %s", to)
         return
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = f"RecruiterHub <{s.smtp_user}>"
-    msg["To"] = to
-    msg.attach(MIMEText(html, "html", "utf-8"))
     try:
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=10) as srv:
-            srv.ehlo()
-            srv.starttls()
-            srv.login(s.smtp_user, s.smtp_password)
-            srv.sendmail(s.smtp_user, [to], msg.as_string())
+        import resend
+        resend.api_key = s.resend_api_key
+        from_addr = f"RecruiterHub <{s.email_from}>" if s.email_from else "RecruiterHub <onboarding@resend.dev>"
+        resend.Emails.send({"from": from_addr, "to": [to], "subject": subject, "html": html})
         logger.info("Email sent to %s: %s", to, subject)
     except Exception as e:
         logger.error("Failed to send email to %s: %s", to, e)

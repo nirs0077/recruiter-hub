@@ -1,9 +1,7 @@
+import base64
 import logging
-import smtplib
 import uuid
 from datetime import datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from firebase_admin import firestore as fs
@@ -527,32 +525,26 @@ def _send_civi_email(
     attachment_bytes: bytes | None = None,
     attachment_name: str | None = None,
 ):
-    if not settings.smtp_user or not settings.smtp_password:
-        logger.info("SMTP not configured — CIVI email skipped (recorded in DB)")
+    if not settings.resend_api_key:
+        logger.info("Resend API key not configured — CIVI email skipped (recorded in DB)")
         return
     try:
-        msg = MIMEMultipart("mixed")
-        msg["Subject"] = subject
-        msg["From"] = f"RecruiterHub <{settings.smtp_user}>"
-        msg["Reply-To"] = f"{contractor_name} <{contractor_email}>"
-        msg["To"] = settings.civi_email
-        msg.attach(MIMEText(html, "html", "utf-8"))
-
+        import resend
+        resend.api_key = settings.resend_api_key
+        from_addr = f"RecruiterHub <{settings.email_from}>" if settings.email_from else "RecruiterHub <onboarding@resend.dev>"
+        params: resend.Emails.SendParams = {
+            "from": from_addr,
+            "to": [settings.civi_email],
+            "reply_to": [f"{contractor_name} <{contractor_email}>"],
+            "subject": subject,
+            "html": html,
+        }
         if attachment_bytes and attachment_name:
-            from email.mime.base import MIMEBase
-            from email import encoders as _enc
-            from email.utils import encode_rfc2231
-            part = MIMEBase("application", "octet-stream")
-            part.set_payload(attachment_bytes)
-            _enc.encode_base64(part)
-            encoded_name = encode_rfc2231(attachment_name, charset="utf-8")
-            part.add_header("Content-Disposition", "attachment", filename=encoded_name)
-            msg.attach(part)
-
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.sendmail(settings.smtp_user, settings.civi_email, msg.as_string())
+            params["attachments"] = [{
+                "filename": attachment_name,
+                "content": list(attachment_bytes),
+            }]
+        resend.Emails.send(params)
     except Exception as exc:
         logger.exception("CIVI email send failed")
         raise HTTPException(status_code=500, detail=f"{type(exc).__name__}: {exc}")

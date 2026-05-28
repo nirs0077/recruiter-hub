@@ -19,11 +19,9 @@ class Settings(BaseSettings):
     score_threshold: float = 75.0
     frontend_url: str = "http://localhost:5173"
 
-    # SMTP (optional — leave empty to disable email notifications)
-    smtp_host: str = "smtp.gmail.com"
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""
+    # Email (Resend API — leave empty to disable)
+    resend_api_key: str = ""
+    email_from: str = ""  # e.g. nirs@connectech.co.il (must be a verified Resend domain)
 
     # Google Drive (optional — leave folder_id empty to disable)
     google_drive_credentials_path: str = "google-drive-credentials.json"
