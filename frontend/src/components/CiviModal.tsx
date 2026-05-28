@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Send, X, Loader2, Mail, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Send, X, Loader2, Mail, ChevronDown, ChevronUp, Paperclip, FileText } from "lucide-react";
 import api from "../api";
 
 const CIVI_EMAIL = "talents@connectech.co.il";
+const ACCEPTED = ".pdf,.doc,.docx,.png,.jpg,.jpeg";
 
 interface Props {
   appId: string;
@@ -16,10 +17,12 @@ export default function CiviModal({ appId, candidateName, jobTitle, onSent, onCl
   const [subject, setSubject] = useState("");
   const [previewHtml, setPreviewHtml] = useState("");
   const [message, setMessage] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get(`/applications/${appId}/civi-preview`)
@@ -32,9 +35,12 @@ export default function CiviModal({ appId, candidateName, jobTitle, onSent, onCl
     setSending(true);
     setError("");
     try {
-      await api.post(`/applications/${appId}/send-to-civi`, {
-        subject_override: subject.trim() || null,
-        custom_message: message.trim() || null,
+      const fd = new FormData();
+      if (subject.trim()) fd.append("subject_override", subject.trim());
+      if (message.trim()) fd.append("custom_message", message.trim());
+      if (attachment) fd.append("attachment", attachment, attachment.name);
+      await api.post(`/applications/${appId}/send-to-civi`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       onSent();
     } catch (e: any) {
@@ -99,6 +105,43 @@ export default function CiviModal({ appId, candidateName, jobTitle, onSent, onCl
                 />
               </div>
 
+              {/* Attachment */}
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">
+                  קובץ מצורף (אופציונלי)
+                </label>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept={ACCEPTED}
+                  className="hidden"
+                  onChange={e => setAttachment(e.target.files?.[0] ?? null)}
+                />
+                {attachment ? (
+                  <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">
+                    <FileText size={14} className="text-indigo-500 shrink-0" />
+                    <span className="text-xs text-indigo-800 flex-1 truncate">{attachment.name}</span>
+                    <span className="text-xs text-indigo-500 shrink-0">
+                      {(attachment.size / 1024).toFixed(0)} KB
+                    </span>
+                    <button
+                      onClick={() => { setAttachment(null); if (fileRef.current) fileRef.current.value = ""; }}
+                      className="text-indigo-400 hover:text-red-500 shrink-0"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    className="flex items-center gap-2 text-xs text-gray-500 hover:text-indigo-600 border border-dashed border-gray-300 hover:border-indigo-300 rounded-lg px-3 py-2 w-full transition-colors"
+                  >
+                    <Paperclip size={13} />
+                    לחץ לצירוף קובץ (PDF, Word, תמונה)
+                  </button>
+                )}
+              </div>
+
               {previewHtml && (
                 <div>
                   <button
@@ -140,7 +183,8 @@ export default function CiviModal({ appId, candidateName, jobTitle, onSent, onCl
             disabled={sending || loadingPreview}
             className="flex-1 flex items-center justify-center gap-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 font-medium disabled:opacity-50"
           >
-            <Send size={14} />{sending ? "שולח..." : "שלח לCIVI"}
+            <Send size={14} />
+            {sending ? "שולח..." : attachment ? `שלח לCIVI + קובץ` : "שלח לCIVI"}
           </button>
         </div>
       </div>

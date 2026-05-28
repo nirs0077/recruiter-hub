@@ -14,7 +14,6 @@ from models.schemas import (
     ApplicationOut,
     ApplicationStatus,
     CheckMatchRequest,
-    SendToCiviRequest,
     StatusUpdateRequest,
     SubmitExistingRequest,
     UserRole,
@@ -374,7 +373,13 @@ async def get_civi_preview(app_id: str, user=Depends(get_current_user)):
 
 
 @router.post("/{app_id}/send-to-civi")
-async def send_to_civi(app_id: str, body: SendToCiviRequest, user=Depends(get_current_user)):
+async def send_to_civi(
+    app_id: str,
+    user=Depends(get_current_user),
+    subject_override: str | None = Form(None),
+    custom_message: str | None = Form(None),
+    attachment: UploadFile | None = File(None),
+):
     db = get_db()
     settings = get_settings()
 
@@ -406,11 +411,19 @@ async def send_to_civi(app_id: str, body: SendToCiviRequest, user=Depends(get_cu
     contractor_email = contractor.get("email", "")
     contractor_name = contractor.get("name", "")
 
-    custom_msg = body.custom_message or ""
+    custom_msg = custom_message or ""
     subject, html = _build_civi_email(d, contractor_name, custom_msg)
-    if body.subject_override and body.subject_override.strip():
-        subject = body.subject_override.strip()
-    _send_civi_email(settings, contractor_email, contractor_name, subject, html)
+    if subject_override and subject_override.strip():
+        subject = subject_override.strip()
+
+    attachment_bytes = None
+    attachment_name = None
+    if attachment and attachment.filename:
+        attachment_bytes = await attachment.read()
+        attachment_name = attachment.filename
+
+    _send_civi_email(settings, contractor_email, contractor_name, subject, html,
+                     attachment_bytes, attachment_name)
 
     now = datetime.utcnow().isoformat()
     db.collection("applications").document(app_id).update({
@@ -476,21 +489,43 @@ def _build_civi_email(d: dict, contractor_name: str, custom_message: str = "") -
     return subject, html
 
 
-def _send_civi_email(settings, contractor_email: str, contractor_name: str, subject: str, html: str):
+def _send_civi_email(
+    settings,
+    contractor_email: str,
+    contractor_name: str,
+    subject: str,
+    html: str,
+    attachment_bytes: bytes | None = None,
+    attachment_name: str | None = None,
+):
     if not settings.smtp_user or not settings.smtp_password:
         logger.info("SMTP not configured — CIVI email skipped (recorded in DB)")
         return
     try:
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
         msg["From"] = f"RecruiterHub <{settings.smtp_user}>"
         msg["Reply-To"] = f"{contractor_name} <{contractor_email}>"
         msg["To"] = settings.civi_email
         msg.attach(MIMEText(html, "html", "utf-8"))
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
+
+        if attachment_bytes and attachment_name:
+            from email.mime.base import MIMEBase
+            from email import encoders as _enc
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(attachment_bytes)
+            _enc.encode_base64(part)
+            safe_name = attachment_name.encode("ascii", "ignore").decode() or "attachment"
+            part.add_header("Content-Disposition", f'attachment; filename="{safe_name}"')
+            msg.attach(part)
+
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as server:
             server.starttls()
             server.login(settings.smtp_user, settings.smtp_password)
             server.sendmail(settings.smtp_user, settings.civi_email, msg.as_string())
+    except smtplib.SMTPException as exc:
+        logger.exception("CIVI SMTP error")
+        raise HTTPException(status_code=500, detail=f"שגיאת SMTP: {exc}")
     except Exception:
         logger.exception("CIVI email send failed")
         raise HTTPException(status_code=500, detail="שגיאה בשליחת המייל לCIVI — הנתונים נשמרו")
